@@ -14,10 +14,6 @@ int main(int argc, char* argv[]) {
 		printf("Too many arguments - format: deliver <server address> <server port number>\n");
 		exit(EXIT_FAILURE);
 	}
-	if (!(atoi(argv[1]))) {
-		printf("Invalid server address\n");
-		exit(EXIT_FAILURE);
-	}
 	if (!(atoi(argv[2]))) {
 		printf("Invalid port number\n");
 		exit(EXIT_FAILURE);
@@ -38,11 +34,11 @@ int main(int argc, char* argv[]) {
 
 	servaddr.sin_family = AF_INET;
 	servaddr.sin_port = htons(atoi(argv[2]));
-	servaddr.sin_addr.s_addr = atoi(argv[1]);
+	servaddr.sin_addr.s_addr = inet_addr(argv[1]);
 
 	printf("Input: ftp <file name>\n");
 	scanf("%s %s", &cmd, &filename);
-	if(!(strcmp(cmd, "ftp"))) {
+	if(!(strcmp(ftp, cmd))) {
 		if (access(filename, F_OK) != 0) {
 			exit(EXIT_FAILURE);
 		}
@@ -53,13 +49,13 @@ int main(int argc, char* argv[]) {
 
 	int n, len;
 
-	sendto(sockfd, (const char *)filename, strlen(filename), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
+	sendto(sockfd, (const char *)ftp, strlen(ftp), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
 
 	n = recvfrom(sockfd, (char *)buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr *) &servaddr, &len);
 
 	buffer[n] = '\0';
 	if(!(strcmp(buffer, "yes"))) {
-		printf("A file transfer can start.");
+		printf("A file transfer can start.\n");
 	}
 
 	close(sockfd);
