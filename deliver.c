@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
 	int sockfd;
 	char buffer[MAX_LINE];
 	char* ftp = "ftp";
-	char* cmd[4], filename[MAX_LINE];
+	char cmd[4], filename[MAX_LINE];
 	struct sockaddr_in servaddr;
 
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -43,22 +43,25 @@ int main(int argc, char* argv[]) {
 	printf("Input: ftp <file name>\n");
 	scanf("%s %s", &cmd, &filename);
 	if(!(strcmp(cmd, "ftp"))) {
-
+		if (access(filename, F_OK) != 0) {
+			exit(EXIT_FAILURE);
+		}
+	} else {
+		printf("Invalid input\n");
+		exit(EXIT_FAILURE);
 	}
 
 	int n, len;
 
-	sendto(sockfd, (const char *)hello, strlen(hello),
-		MSG_CONFIRM, (const struct sockaddr *) &servaddr,
-			sizeof(servaddr));
-	printf("Hello message sent.\n");
+	sendto(sockfd, (const char *)filename, strlen(filename), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
 
-	n = recvfrom(sockfd, (char *)buffer, MAXLINE,
-				MSG_WAITALL, (struct sockaddr *) &servaddr,
-				&len);
+	n = recvfrom(sockfd, (char *)buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr *) &servaddr, &len);
+
 	buffer[n] = '\0';
-	printf("Server : %s\n", buffer);
+	if(!(strcmp(buffer, "yes"))) {
+		printf("A file transfer can start.");
+	}
 
 	close(sockfd);
-	return 0;
+	exit(EXIT_SUCCESS);
 }
