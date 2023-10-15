@@ -69,6 +69,7 @@ int main(int argc, char* argv[]) {
 	bool received = false;
 	char ACK[] = "ACK";
 	int cur_packets = 0;
+	int total_filesize = 0;
 	while (1) {
 		recvfrom(sockfd, recvpacketstr, sizeof(recvpacketstr), MSG_WAITALL, (struct sockaddr*) &cliaddr, &len);
 
@@ -121,6 +122,8 @@ int main(int argc, char* argv[]) {
 			fp = fopen(recvpacket.filename, "w+");
 		}
 
+		total_filesize += recvpacket.size;
+
 		for (int c = 0; c < recvpacket.size; ++c) {
 			filedata[(recvpacket.frag_no - 1) * 1000 + c] = recvpacket.filedata[c];
 		}
@@ -128,8 +131,7 @@ int main(int argc, char* argv[]) {
 
 		free(recvpacket.filename);
 		if(++cur_packets == recvpacket.total_frag){
-			printf("%s\n", filedata);
-			fwrite(filedata, sizeof(char), sizeof(sizeof(char) * recvpacket.total_frag * 1000), fp);
+			fwrite(filedata, sizeof(char), sizeof(char) * total_filesize, fp);
 			fclose(fp);
 			free(filedata);
 			break;
