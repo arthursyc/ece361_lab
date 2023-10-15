@@ -65,19 +65,32 @@ int main(int argc, char* argv[]) {
 	struct packet* packets = (struct packet*) malloc(sizeof(struct packet) * total_packets);
 	int cur_packet = 0;
 	for (int c = 0; c < total_filesize; c += 1000) {
-		packets[cur_packet].total_frag = total_packets;
-		packets[cur_packet].frag_no = cur_packet + 1;
-		packets[cur_packet].size = ((total_filesize - 1000) > c) ? 1000 : (total_filesize - c);
-		strcpy(packets[cur_packet].filename, filename);
-		fread(packets[cur_packet].filedata, sizeof(char), packets[cur_packet].size, fp);
+		struct packet new_packet;
+
+		new_packet.total_frag = total_packets;
+
+		new_packet.frag_no = cur_packet + 1;
+
+		new_packet.size = ((total_filesize - c) > 1000) ? 1000 : (total_filesize - c);
+
+		new_packet.filename = (char *) malloc(sizeof(char) * strlen(filename));
+		strcpy(new_packet.filename, filename);
+
+		fread(new_packet.filedata, sizeof(char), new_packet.size, fp);
+
+		packets[cur_packet] = new_packet;
+		++cur_packet;
 	}
 
 	int n, len;
 
+	printf("hi\n");
 	clock_t start = clock();
 	sendto(sockfd, (const char *)ftp, strlen(ftp), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
+	printf("send\n");
 
 	n = recvfrom(sockfd, (char *)buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr *) &servaddr, &len);
+	printf("recv\n");
 	clock_t end = clock();
 
 	buffer[n] = '\0';
@@ -89,8 +102,9 @@ int main(int argc, char* argv[]) {
 
 	for (int packet = 0; packet < total_packets; ++packet) {
 		sendto(sockfd, (const struct packet *)&packets[packet], sizeof(packets[packet]), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
+		free(packets[packet].filename);
 	}
-
+	free(packets);
 	close(sockfd);
 	exit(EXIT_SUCCESS);
 }
