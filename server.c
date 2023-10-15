@@ -132,10 +132,14 @@ int main(int argc, char* argv[]) {
 		free(recvpacket.filename);
 		if(++cur_packets == recvpacket.total_frag){
 			fwrite(filedata, sizeof(char), sizeof(char) * total_filesize, fp);
+			char* confirm = "received";
+			printf("%s\n", confirm);
+			sendto(sockfd, (const char*) confirm, strlen(confirm), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
+			printf("%s was sent\n", confirm);
 			fclose(fp);
 			free(filedata);
 			break;
 		}
-
 	}
+	
 }
