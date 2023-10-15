@@ -74,7 +74,7 @@ int main(int argc, char* argv[]) {
 
 		new_packet.size = ((total_filesize - c) > 1000) ? 1000 : (total_filesize - c);
 
-		new_packet.filename = (char *) malloc(sizeof(char) * strlen(filename));
+		new_packet.filename = (char *) malloc(sizeof(char) * MAX_LINE);
 		strcpy(new_packet.filename, filename);
 
 		fread(new_packet.filedata, sizeof(char), new_packet.size, fp);
@@ -102,9 +102,25 @@ int main(int argc, char* argv[]) {
 	printf("Round trip time: %f\n", (double)(end - start)/CLOCKS_PER_SEC);
 
 	for (int packet = 0; packet < total_packets; ++packet) {
-		sendto(sockfd, (const struct packet *)&packets[packet], sizeof(packets[packet]), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
-		printf("packet sent\t %d, %d, %d, %s, %s\n", packets[packet].total_frag, packets[packet].frag_no, packets[packet].size, packets[packet].filename, packets[packet].filedata);
-		free(packets[packet].filename);
+		char packetstr[MAX_LINE * 2];
+		char buffer[MAX_LINE];
+		strcpy(packetstr, "");
+		sprintf(buffer, "%d", packets[packet].total_frag);
+		strcat(packetstr, buffer);
+		strcat(packetstr, ":");
+		sprintf(buffer, "%d", packets[packet].frag_no);
+		strcat(packetstr, buffer);
+		strcat(packetstr, ":");
+		sprintf(buffer, "%d", packets[packet].size);
+		strcat(packetstr, buffer);
+		strcat(packetstr, ":");
+		strcat(packetstr, packets[packet].filename);
+		strcat(packetstr, ":");
+		strcat(packetstr, packets[packet].filedata);
+		printf("%s\n", packetstr);
+		sendto(sockfd, (const char *)packetstr, sizeof(packetstr), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
+		// printf("packet sent\t %d, %d, %d, %s, %s\n", packets[packet].total_frag, packets[packet].frag_no, packets[packet].size, packets[packet].filename, packets[packet].filedata);
+		// free(packets[packet].filename);
 	}
 	free(packets);
 	close(sockfd);
