@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
@@ -8,6 +9,14 @@
 #include <netinet/in.h>
 
 #define MAX_LINE 1024
+
+struct packet {
+	unsigned int total_frag;
+	unsigned int frag_no;
+	unsigned int size;
+	char* filename;
+	char filedata[1000];
+};
 
 int main(int argc, char* argv[]) {
 	if (argc > 2) {
@@ -41,20 +50,47 @@ int main(int argc, char* argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	while(1) {
-		int n, len;
+	int n, len;
 
-		len = sizeof(cliaddr);
+	len = sizeof(cliaddr);
 
-		n = recvfrom(sockfd, (char*) buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr*) &cliaddr, &len);
+	n = recvfrom(sockfd, (char*) buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr*) &cliaddr, &len);
 
-		buffer[n] = '\0';
-		if(!(strcmp(buffer, "ftp"))) {
-			msg = "yes";
-		} else {
-			msg = "no";
+	buffer[n] = '\0';
+	if(!(strcmp(buffer, "ftp"))) {
+		msg = "yes";
+	} else {
+		msg = "no";
+	}
+
+	sendto(sockfd, (const char*) msg, strlen(msg), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
+
+	struct packet* recvpacket;
+	char* filedata;
+	FILE *fp;
+	bool received = false;
+	char ACK[] = "ACK";
+	int cur_packets = 0;
+	while (1) {
+		recvfrom(sockfd, recvpacket, sizeof(packet), MSG_WAITALL, (struct sockaddr*) &cliaddr, &len);
+
+		if (!received) {
+			filedata = (char *) malloc(sizeof(char) * recvpacket->total_frag * 1000);
+			received = true;
+		}
+		if (recvpacket->frag_no = 1) {
+			fp = fopen(recvpacket->filename, "w+");
+		}
+		for (int c = 0; c < recvpacket->size; ++c) {
+			filedata[(recvpacket->frag_no - 1) * 1000 + c] = recvpacket->filedata[c];
 		}
 
-		sendto(sockfd, (const char*) msg, strlen(msg), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
+		sendto(sockfd, (const char*) ACK, strlen(ACK), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
+
+		if (cur_packets++ == recvpacket->total_frag) {
+			fwrite(filedata, sizeof(char), sizeof(filedata), fp);
+			fclose(fp);
+			break;
+		}
 	}
 }

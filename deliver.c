@@ -6,9 +6,18 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <math.h>
 #include <time.h>
 
 #define MAX_LINE 1024
+
+struct packet {
+	unsigned int total_frag;
+	unsigned int frag_no;
+	unsigned int size;
+	char* filename;
+	char filedata[1000];
+};
 
 int main(int argc, char* argv[]) {
 	if (argc > 3) {
@@ -48,6 +57,21 @@ int main(int argc, char* argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
+	FILE *fp = fopen(filename, "r");
+	fseek(fp, 0, SEEK_END);
+	int total_filesize = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+	int total_packets = ceil(total_filesize / 1000);
+	struct packet* packets = (struct packet*) malloc(sizeof(struct packet) * total_packets);
+	int cur_packet = 0;
+	while (int c = 0; c < size; c += 1000) {
+		packets[cur_packet].total_frag = total_packets;
+		packets[cur_packet].frag_no = cur_packet + 1;
+		packets[cur_packet].size = ((total_filesize - 1000) > c) ? 1000 : (total_filesize - c);
+		strcpy(packets[cur_packet].filename, filename);
+		fread(packets[cur_packet].filedata, sizeof(char), packet[cur_packet].size, fp);
+	}
+
 	int n, len;
 
 	clock_t start = clock();
@@ -62,6 +86,10 @@ int main(int argc, char* argv[]) {
 	}
 
 	printf("Round trip time: %f\n", (double)(end - start)/CLOCKS_PER_SEC);
+
+	for (int packet = 0; packet < total_packets; ++packet) {
+		sendto(sockfd, (const struct packet *)&packets[packet], sizeof(packets[packet]), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
+	}
 
 	close(sockfd);
 	exit(EXIT_SUCCESS);
