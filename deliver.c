@@ -64,12 +64,12 @@ int main(int argc, char* argv[]) {
 	int total_packets = ceil(total_filesize / 1000);
 	struct packet* packets = (struct packet*) malloc(sizeof(struct packet) * total_packets);
 	int cur_packet = 0;
-	while (int c = 0; c < size; c += 1000) {
+	for (int c = 0; c < total_filesize; c += 1000) {
 		packets[cur_packet].total_frag = total_packets;
 		packets[cur_packet].frag_no = cur_packet + 1;
 		packets[cur_packet].size = ((total_filesize - 1000) > c) ? 1000 : (total_filesize - c);
 		strcpy(packets[cur_packet].filename, filename);
-		fread(packets[cur_packet].filedata, sizeof(char), packet[cur_packet].size, fp);
+		fread(packets[cur_packet].filedata, sizeof(char), packets[cur_packet].size, fp);
 	}
 
 	int n, len;

@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
 	char ACK[] = "ACK";
 	int cur_packets = 0;
 	while (1) {
-		recvfrom(sockfd, recvpacket, sizeof(packet), MSG_WAITALL, (struct sockaddr*) &cliaddr, &len);
+		recvfrom(sockfd, recvpacket, sizeof(struct packet), MSG_WAITALL, (struct sockaddr*) &cliaddr, &len);
 
 		if (!received) {
 			filedata = (char *) malloc(sizeof(char) * recvpacket->total_frag * 1000);
