@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <time.h>
 
 #define MAX_LINE 1024
 
@@ -49,14 +50,18 @@ int main(int argc, char* argv[]) {
 
 	int n, len;
 
+	clock_t start = clock();
 	sendto(sockfd, (const char *)ftp, strlen(ftp), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
 
 	n = recvfrom(sockfd, (char *)buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr *) &servaddr, &len);
+	clock_t end = clock();
 
 	buffer[n] = '\0';
 	if(!(strcmp(buffer, "yes"))) {
 		printf("A file transfer can start.\n");
 	}
+
+	printf("Round trip time: %f\n", (double)(end - start)/CLOCKS_PER_SEC);
 
 	close(sockfd);
 	exit(EXIT_SUCCESS);
