@@ -117,11 +117,18 @@ int main(int argc, char* argv[]) {
 		strcat(packetstr, packets[packet].filename);
 		strcat(packetstr, ":");
 		strcat(packetstr, packets[packet].filedata);
-		printf("%s\n", packetstr);
 		sendto(sockfd, (const char *)packetstr, sizeof(packetstr), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
 		// printf("packet sent\t %d, %d, %d, %s, %s\n", packets[packet].total_frag, packets[packet].frag_no, packets[packet].size, packets[packet].filename, packets[packet].filedata);
 		// free(packets[packet].filename);
 	}
+	printf("%s is buffer\n", buffer);
+	n = recvfrom(sockfd, (char *)buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr *) &servaddr, &len);
+	printf("\n");
+	buffer[n] = '\0';
+	printf("%s is buffer\n", buffer);
+	// if(!(strcmp(buffer, "received"))){
+	// 	printf("Packet received correctly");
+	// }
 	free(packets);
 	close(sockfd);
 	exit(EXIT_SUCCESS);
