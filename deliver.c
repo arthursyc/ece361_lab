@@ -6,7 +6,6 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <math.h>
 #include <time.h>
 
 #define MAX_LINE 1024
@@ -61,7 +60,9 @@ int main(int argc, char* argv[]) {
 	fseek(fp, 0, SEEK_END);
 	int total_filesize = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
-	int total_packets = ceil(total_filesize / 1000);
+	printf("%d\n", total_filesize);
+	int total_packets = (total_filesize % 1000) ? total_filesize / 1000 + 1: total_filesize / 1000;
+	printf("%d\n", total_packets);
 	struct packet* packets = (struct packet*) malloc(sizeof(struct packet) * total_packets);
 	int cur_packet = 0;
 	for (int c = 0; c < total_filesize; c += 1000) {
@@ -102,6 +103,7 @@ int main(int argc, char* argv[]) {
 
 	for (int packet = 0; packet < total_packets; ++packet) {
 		sendto(sockfd, (const struct packet *)&packets[packet], sizeof(packets[packet]), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
+		printf("packet sent\t %d, %d, %d, %s, %s\n", packets[packet].total_frag, packets[packet].frag_no, packets[packet].size, packets[packet].filename, packets[packet].filedata);
 		free(packets[packet].filename);
 	}
 	free(packets);
