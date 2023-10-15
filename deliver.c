@@ -60,9 +60,7 @@ int main(int argc, char* argv[]) {
 	fseek(fp, 0, SEEK_END);
 	int total_filesize = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
-	printf("%d\n", total_filesize);
 	int total_packets = (total_filesize % 1000) ? total_filesize / 1000 + 1: total_filesize / 1000;
-	printf("%d\n", total_packets);
 	struct packet* packets = (struct packet*) malloc(sizeof(struct packet) * total_packets);
 	int cur_packet = 0;
 	for (int c = 0; c < total_filesize; c += 1000) {
@@ -85,13 +83,10 @@ int main(int argc, char* argv[]) {
 
 	int n, len;
 
-	printf("hi\n");
 	clock_t start = clock();
 	sendto(sockfd, (const char *)ftp, strlen(ftp), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
-	printf("send\n");
 
 	n = recvfrom(sockfd, (char *)buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr *) &servaddr, &len);
-	printf("recv\n");
 	clock_t end = clock();
 
 	buffer[n] = '\0';
@@ -100,7 +95,6 @@ int main(int argc, char* argv[]) {
 	}
 
 	printf("Round trip time: %f\n", (double)(end - start)/CLOCKS_PER_SEC);
-
 	for (int packet = 0; packet < total_packets; ++packet) {
 		char packetstr[MAX_LINE * 2];
 		char buffer[MAX_LINE];
@@ -116,19 +110,14 @@ int main(int argc, char* argv[]) {
 		strcat(packetstr, ":");
 		strcat(packetstr, packets[packet].filename);
 		strcat(packetstr, ":");
-		strcat(packetstr, packets[packet].filedata);
+		memcpy(&packetstr[strlen(packetstr)], packets[packet].filedata, packets[packet].size);
 		sendto(sockfd, (const char *)packetstr, sizeof(packetstr), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
-		// printf("packet sent\t %d, %d, %d, %s, %s\n", packets[packet].total_frag, packets[packet].frag_no, packets[packet].size, packets[packet].filename, packets[packet].filedata);
-		// free(packets[packet].filename);
+		n = recvfrom(sockfd, (char *)buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr *) &servaddr, &len);
 	}
-	printf("%s is buffer\n", buffer);
 	n = recvfrom(sockfd, (char *)buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr *) &servaddr, &len);
 	printf("\n");
 	buffer[n] = '\0';
-	printf("%s is buffer\n", buffer);
-	// if(!(strcmp(buffer, "received"))){
-	// 	printf("Packet received correctly");
-	// }
+	printf("%s received\n", buffer);
 	free(packets);
 	close(sockfd);
 	exit(EXIT_SUCCESS);

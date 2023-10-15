@@ -108,9 +108,10 @@ int main(int argc, char* argv[]) {
 		}
 		++C;
 
-		for (c = 0; c < recvpacket.size; ++c) {
-			recvpacket.filedata[c] = recvpacketstr[C++];
-		}
+		memcpy(recvpacket.filedata, &recvpacketstr[C], recvpacket.size);
+		// for (c = 0; c < recvpacket.size; ++c) {
+		// 	recvpacket.filedata[c] = recvpacketstr[C++];
+		// }
 
 
 		if (!received) {
@@ -130,16 +131,14 @@ int main(int argc, char* argv[]) {
 		sendto(sockfd, (const char*) ACK, strlen(ACK), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
 
 		free(recvpacket.filename);
+
 		if(++cur_packets == recvpacket.total_frag){
 			fwrite(filedata, sizeof(char), sizeof(char) * total_filesize, fp);
-			char* confirm = "received";
-			printf("%s\n", confirm);
-			sendto(sockfd, (const char*) confirm, strlen(confirm), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
-			printf("%s was sent\n", confirm);
+			sendto(sockfd, (const char*) ACK, strlen(ACK), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
+			printf("%s sent\n", ACK);
 			fclose(fp);
 			free(filedata);
 			break;
 		}
 	}
-	
 }
