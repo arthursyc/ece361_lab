@@ -53,9 +53,9 @@ int main(int argc, char* argv[]) {
 	int n, len;
 
 	len = sizeof(cliaddr);
-
+	//printf("ready\n");
 	n = recvfrom(sockfd, (char*) buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr*) &cliaddr, &len);
-
+	//printf("received\n");
 	buffer[n] = '\0';
 	if(!(strcmp(buffer, "ftp"))) {
 		msg = "yes";
@@ -65,7 +65,8 @@ int main(int argc, char* argv[]) {
 
 	sendto(sockfd, (const char*) msg, strlen(msg), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
 
-	struct packet* recvpacket;
+	struct packet* recvpacket = (struct packet*) malloc(sizeof(struct packet));
+	recvpacket->filename = (char*) malloc(sizeof(char) * MAX_LINE);
 	char* filedata;
 	FILE *fp;
 	bool received = false;
@@ -73,24 +74,38 @@ int main(int argc, char* argv[]) {
 	int cur_packets = 0;
 	while (1) {
 		recvfrom(sockfd, recvpacket, sizeof(struct packet), MSG_WAITALL, (struct sockaddr*) &cliaddr, &len);
-
 		if (!received) {
+			printf("%d \n", recvpacket->total_frag);
 			filedata = (char *) malloc(sizeof(char) * recvpacket->total_frag * 1000);
+
 			received = true;
 		}
-		if (recvpacket->frag_no = 1) {
+
+		if (recvpacket->frag_no == 1) {
 			fp = fopen(recvpacket->filename, "w+");
+			printf("received head\n");
+			printf("%s\n", recvpacket->filename);
 		}
+
 		for (int c = 0; c < recvpacket->size; ++c) {
 			filedata[(recvpacket->frag_no - 1) * 1000 + c] = recvpacket->filedata[c];
 		}
 
 		sendto(sockfd, (const char*) ACK, strlen(ACK), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
 
-		if (cur_packets++ == recvpacket->total_frag) {
-			fwrite(filedata, sizeof(char), sizeof(filedata), fp);
-			fclose(fp);
+		cur_packets = cur_packets + 1;
+		if(cur_packets == recvpacket->total_frag){
+			printf("1");
+			printf("its fwrite");
+			//fwrite(filedata, sizeof(char), sizeof(filedata), fp);
+			printf("not really");
+			if(fp==NULL) printf("NULL");
+			//fclose(fp);
+			// free(filedata);
+			// free(recvpacket->filename);
+			// free(recvpacket);
 			break;
 		}
+		
 	}
 }
