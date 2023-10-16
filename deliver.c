@@ -112,6 +112,7 @@ int main(int argc, char* argv[]) {
 		strcat(packetstr, ":");
 		memcpy(&packetstr[strlen(packetstr)], packets[packet].filedata, packets[packet].size);
 		sendto(sockfd, (const char *)packetstr, sizeof(packetstr), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
+		printf("Packet sent: %d/%d\n", packets[packet].frag_no, packets[packet].total_frag);
 		n = recvfrom(sockfd, (char *)buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr *) &servaddr, &len);
 	}
 	n = recvfrom(sockfd, (char *)buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr *) &servaddr, &len);
