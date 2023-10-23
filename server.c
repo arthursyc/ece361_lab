@@ -109,12 +109,16 @@ int main(int argc, char* argv[]) {
 		++C;
 
 		memcpy(recvpacket.filedata, &recvpacketstr[C], recvpacket.size);
-		// for (c = 0; c < recvpacket.size; ++c) {
-		// 	recvpacket.filedata[c] = recvpacketstr[C++];
-		// }
 
+		int pid = 1;
+		if (recvpacket.frag_no == -1) {
+			pid = fork();
+			if (pid != 0 && pid != -1) {
+				continue;
+			}
+		}
 
-		if (!received) {
+		if (pid != 0 && !received) {
 			filedata = (char *) malloc(sizeof(char) * recvpacket.total_frag * 1000);
 			received = true;
 		}
@@ -131,6 +135,10 @@ int main(int argc, char* argv[]) {
 		sendto(sockfd, (const char*) ACK, strlen(ACK), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
 
 		free(recvpacket.filename);
+
+		if (pid == 0) {
+			return 0;
+		}
 
 		if(++cur_packets == recvpacket.total_frag){
 			fwrite(filedata, sizeof(char), sizeof(char) * total_filesize, fp);
