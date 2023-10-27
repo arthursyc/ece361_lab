@@ -68,7 +68,6 @@ int main(int argc, char* argv[]) {
 	FILE *fp;
 	bool received = false;
 	char ACK[] = "ACK";
-	char NACK[] = "NACK";
 	int cur_packets = 0;
 	int expecting_packet = 1;
 	int total_filesize = 0;
@@ -120,8 +119,10 @@ int main(int argc, char* argv[]) {
 		}
 
 		if (recvpacket.frag_no != expecting_packet && recvpacket.frag_no != -1) {
-			sendto(sockfd, (const char*) NACK, strlen(NACK), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
-			printf("Packet %s sent: %d/%d - expecting %d/%d\n", NACK, recvpacket.frag_no, recvpacket.total_frag, expecting_packet, recvpacket.total_frag);
+			char NACKMSG[MAX_LINE];
+			sprintf(NACKMSG, "NACK:%d", expecting_packet);
+			sendto(sockfd, (const char*) NACKMSG, strlen(NACKMSG), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
+			printf("Packet NACK sent: %d/%d - expecting %d/%d\n", recvpacket.frag_no, recvpacket.total_frag, expecting_packet, recvpacket.total_frag);
 			free(recvpacket.filename);
 			continue;
 		}

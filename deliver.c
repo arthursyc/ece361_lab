@@ -102,8 +102,10 @@ int main(int argc, char* argv[]) {
 	FD_ZERO(&socks);
 	FD_SET(sockfd, &socks);
 	struct timeval t;
+	struct timespec timeout_wait;
 	t.tv_sec = 0;
 	t.tv_usec = 500000;
+	timeout_wait.tv_sec = 0;
 	char testpacket[] = "1000:-1:1000:this_is_just_test_packet:Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
 	while (1) {
 		start = clock();
@@ -114,11 +116,11 @@ int main(int argc, char* argv[]) {
 			break;
 		}
 	}
-	t.tv_usec = ((double)(end - start)/CLOCKS_PER_SEC) * 1000000;
-	t.tv_usec = 1000;
-
-	printf("Section 4: ACK wait time: %dus\n", t.tv_usec);
+	int timeout = ((double)(end - start)/CLOCKS_PER_SEC) * 1000000 * 2;
+	timeout_wait.tv_nsec = timeout % 1000 * 1000000 * 5;
+	printf("Section 4: ACK wait time: %dus\n", timeout);
 	sleep(5);
+
 	for (int packet = 0; packet < total_packets; ++packet) {
 		char packetstr[MAX_LINE * 2];
 		char buffer[MAX_LINE];
@@ -128,6 +130,7 @@ int main(int argc, char* argv[]) {
 			start = clock();
 			sendto(sockfd, (const char *)packetstr, sizeof(packetstr), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
 			printf("Packet sent: %d/%d\n", packets[packet].frag_no, packets[packet].total_frag);
+			t.tv_usec = timeout;
 			if (select((sockfd + 1), &socks, NULL, NULL, &t)) {
 				n = recvfrom(sockfd, (char *)buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr *) &servaddr, &len);
 				end = clock();
@@ -135,12 +138,17 @@ int main(int argc, char* argv[]) {
 				if(!(strcmp(buffer, "ACK"))) {
 					printf("Packet ACK received: %d/%d - Round trip time = %f\n", packets[packet].frag_no, packets[packet].total_frag, (double)(end - start)/CLOCKS_PER_SEC);
 					break;
-				} else if (!(strcmp(buffer, "NACK"))) {
-					printf("Packet NACK received: %d/%d - resending\n", packets[packet].frag_no, packets[packet].total_frag);
+				} else if (buffer[0] == 'N') {
+					int expecting;
+					sscanf(buffer, "NACK:%d", &expecting);
+					printf("Packet NACK received: %d/%d - expecting %d/%d\n", packets[packet].frag_no, packets[packet].total_frag, expecting, packets[packet].total_frag);
+					packet = expecting;
 				}
 			} else {
 				end = clock();
 				printf("Timeout for packet %d/%d - %fs passed - resending\n", packets[packet].frag_no, packets[packet].total_frag, (double)(end - start)/CLOCKS_PER_SEC);
+				nanosleep(&timeout_wait, &timeout_wait);
+				printf("%d\n", timeout_wait.tv_nsec);
 			}
 		}
 	}
