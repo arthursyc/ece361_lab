@@ -102,12 +102,12 @@ int main(int argc, char* argv[]) {
 	FD_ZERO(&socks);
 	FD_SET(sockfd, &socks);
 	struct timeval t;
+	t.tv_sec = 0;
 	t.tv_usec = 500000;
 	char testpacket[] = "1000:-1:1000:this_is_just_test_packet:Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
 	while (1) {
 		start = clock();
 		sendto(sockfd, (const char *)testpacket, strlen(testpacket), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
-
 		if (select((sockfd + 1), &socks, NULL, NULL, &t)) {
 			n = recvfrom(sockfd, (char *)buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr *) &servaddr, &len);
 			end = clock();
@@ -115,31 +115,34 @@ int main(int argc, char* argv[]) {
 		}
 	}
 	t.tv_usec = ((double)(end - start)/CLOCKS_PER_SEC) * 1000000;
+	t.tv_usec = 1000;
 
-	printf("Section 4: round trip time: %dus\n", t.tv_usec);
-
+	printf("Section 4: ACK wait time: %dus\n", t.tv_usec);
+	sleep(5);
 	for (int packet = 0; packet < total_packets; ++packet) {
 		char packetstr[MAX_LINE * 2];
 		char buffer[MAX_LINE];
 		sprintf(packetstr, "%d:%d:%d:%s:", packets[packet].total_frag, packets[packet].frag_no, packets[packet].size, packets[packet].filename);
 		memcpy(&packetstr[strlen(packetstr)], packets[packet].filedata, packets[packet].size);
 		while (1) {
+			start = clock();
 			sendto(sockfd, (const char *)packetstr, sizeof(packetstr), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
 			printf("Packet sent: %d/%d\n", packets[packet].frag_no, packets[packet].total_frag);
 			if (select((sockfd + 1), &socks, NULL, NULL, &t)) {
 				n = recvfrom(sockfd, (char *)buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr *) &servaddr, &len);
+				end = clock();
 				buffer[n] = '\0';
 				if(!(strcmp(buffer, "ACK"))) {
-					printf("Packet ACK received: %d/%d\n", packets[packet].frag_no, packets[packet].total_frag);
+					printf("Packet ACK received: %d/%d - Round trip time = %f\n", packets[packet].frag_no, packets[packet].total_frag, (double)(end - start)/CLOCKS_PER_SEC);
 					break;
 				} else if (!(strcmp(buffer, "NACK"))) {
 					printf("Packet NACK received: %d/%d - resending\n", packets[packet].frag_no, packets[packet].total_frag);
 				}
 			} else {
-				printf("Timeout for packet %d/%d - resending\n", packets[packet].frag_no, packets[packet].total_frag);
+				end = clock();
+				printf("Timeout for packet %d/%d - %fs passed - resending\n", packets[packet].frag_no, packets[packet].total_frag, (double)(end - start)/CLOCKS_PER_SEC);
 			}
 		}
-
 	}
 	n = recvfrom(sockfd, (char *)buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr *) &servaddr, &len);
 	printf("\n");

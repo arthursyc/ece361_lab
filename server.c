@@ -68,7 +68,9 @@ int main(int argc, char* argv[]) {
 	FILE *fp;
 	bool received = false;
 	char ACK[] = "ACK";
+	char NACK[] = "NACK";
 	int cur_packets = 0;
+	int expecting_packet = 1;
 	int total_filesize = 0;
 	while (1) {
 		recvfrom(sockfd, recvpacketstr, sizeof(recvpacketstr), MSG_WAITALL, (struct sockaddr*) &cliaddr, &len);
@@ -109,7 +111,6 @@ int main(int argc, char* argv[]) {
 		++C;
 
 		memcpy(recvpacket.filedata, &recvpacketstr[C], recvpacket.size);
-
 		int pid = 1;
 		if (recvpacket.frag_no == -1) {
 			pid = fork();
@@ -118,9 +119,18 @@ int main(int argc, char* argv[]) {
 			}
 		}
 
-		if (pid != 0 && !received) {
+		if (recvpacket.frag_no != expecting_packet && recvpacket.frag_no != -1) {
+			sendto(sockfd, (const char*) NACK, strlen(NACK), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
+			printf("Packet %s sent: %d/%d - expecting %d/%d\n", NACK, recvpacket.frag_no, recvpacket.total_frag, expecting_packet, recvpacket.total_frag);
+			free(recvpacket.filename);
+			continue;
+		}
+
+		if (!received) {
 			filedata = (char *) malloc(sizeof(char) * recvpacket.total_frag * 1000);
-			received = true;
+			if (pid != 0) {
+				received = true;
+			}
 		}
 
 		if (recvpacket.frag_no == 1) {
@@ -129,21 +139,30 @@ int main(int argc, char* argv[]) {
 
 		total_filesize += recvpacket.size;
 
+		if (pid == 0) {
+			recvpacket.frag_no = 1;
+		}
+
 		for (int c = 0; c < recvpacket.size; ++c) {
 			filedata[(recvpacket.frag_no - 1) * 1000 + c] = recvpacket.filedata[c];
 		}
+
 		sendto(sockfd, (const char*) ACK, strlen(ACK), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
 
 		free(recvpacket.filename);
 
 		if (pid == 0) {
+			printf("Test packet ACKed\n");
 			return 0;
+		} else {
+			printf("Packet %s sent: %d/%d\n", ACK, recvpacket.frag_no, recvpacket.total_frag);
 		}
+		++expecting_packet;
 
 		if(++cur_packets == recvpacket.total_frag){
 			fwrite(filedata, sizeof(char), sizeof(char) * total_filesize, fp);
 			sendto(sockfd, (const char*) ACK, strlen(ACK), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
-			printf("%s sent\n", ACK);
+			printf("File %s sent\n", ACK);
 			fclose(fp);
 			free(filedata);
 			break;
