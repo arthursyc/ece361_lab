@@ -119,10 +119,11 @@ int main(int argc, char* argv[]) {
 		}
 
 		if (recvpacket.frag_no != expecting_packet && recvpacket.frag_no != -1) {
-			char NACKMSG[MAX_LINE];
-			sprintf(NACKMSG, "NACK:%d", expecting_packet);
-			sendto(sockfd, (const char*) NACKMSG, strlen(NACKMSG), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
-			printf("Packet NACK sent: %d/%d - expecting %d/%d\n", recvpacket.frag_no, recvpacket.total_frag, expecting_packet, recvpacket.total_frag);
+			// char NACKMSG[MAX_LINE];
+			// sprintf(NACKMSG, "NACK:%d", expecting_packet);
+			// sendto(sockfd, (const char*) NACKMSG, strlen(NACKMSG), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
+			// printf("Packet NACK sent: %d/%d - expecting %d/%d\n", recvpacket.frag_no, recvpacket.total_frag, expecting_packet, recvpacket.total_frag);
+			sendto(sockfd, (const char*) ACK, strlen(ACK), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
 			free(recvpacket.filename);
 			continue;
 		}

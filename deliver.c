@@ -135,15 +135,21 @@ int main(int argc, char* argv[]) {
 				n = recvfrom(sockfd, (char *)buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr *) &servaddr, &len);
 				end = clock();
 				buffer[n] = '\0';
-				if(!(strcmp(buffer, "ACK"))) {
-					printf("Packet ACK received: %d/%d - Round trip time = %f\n", packets[packet].frag_no, packets[packet].total_frag, (double)(end - start)/CLOCKS_PER_SEC);
-					break;
-				} else if (buffer[0] == 'N') {
-					int expecting;
-					sscanf(buffer, "NACK:%d", &expecting);
-					printf("Packet NACK received: %d/%d - expecting %d/%d\n", packets[packet].frag_no, packets[packet].total_frag, expecting, packets[packet].total_frag);
-					packet = expecting;
+				while((clock()-end < timeout_wait.tv_nsec) && (strcmp(buffer, "ACK"))) {
+					;
 				}
+				if(!strcmp(buffer, "ACK")){
+					printf("Packet ACK received: %d/%d - Round trip time = %f\n", packets[packet].frag_no, packets[packet].total_frag, (double)(end - start)/CLOCKS_PER_SEC);
+				}else{
+					--packet;
+					break;
+				}
+				// } else if (buffer[0] == 'N') {
+				// 	int expecting;
+				// 	sscanf(buffer, "NACK:%d", &expecting);
+				// 	printf("Packet NACK received: %d/%d - expecting %d/%d\n", packets[packet].frag_no, packets[packet].total_frag, expecting, packets[packet].total_frag);
+				// 	packet = expecting;
+				// }
 			} else {
 				end = clock();
 				printf("Timeout for packet %d/%d - %fs passed - resending\n", packets[packet].frag_no, packets[packet].total_frag, (double)(end - start)/CLOCKS_PER_SEC);
