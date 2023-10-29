@@ -116,9 +116,9 @@ int main(int argc, char* argv[]) {
 			break;
 		}
 	}
-	int timeout = ((double)(end - start)/CLOCKS_PER_SEC) * 1000000 * 2;
-	timeout_wait.tv_nsec = timeout % 1000 * 1000000 * 5;
-	printf("Section 4: ACK wait time: %dus\n", timeout);
+	int timeout = ((double)(end - start)/CLOCKS_PER_SEC) * 1000000 * 20;
+	timeout_wait.tv_nsec = timeout * 1000;
+	printf("Section 4: Timeout interval: %dus\n", timeout);
 	sleep(5);
 
 	for (int packet = 0; packet < total_packets; ++packet) {
@@ -127,23 +127,20 @@ int main(int argc, char* argv[]) {
 		sprintf(packetstr, "%d:%d:%d:%s:", packets[packet].total_frag, packets[packet].frag_no, packets[packet].size, packets[packet].filename);
 		memcpy(&packetstr[strlen(packetstr)], packets[packet].filedata, packets[packet].size);
 		while (1) {
-			start = clock();
 			sendto(sockfd, (const char *)packetstr, sizeof(packetstr), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
 			printf("Packet sent: %d/%d\n", packets[packet].frag_no, packets[packet].total_frag);
 			t.tv_usec = timeout;
+			start = clock();
 			if (select((sockfd + 1), &socks, NULL, NULL, &t)) {
 				n = recvfrom(sockfd, (char *)buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr *) &servaddr, &len);
 				end = clock();
 				buffer[n] = '\0';
-				while((clock()-end < timeout_wait.tv_nsec) && (strcmp(buffer, "ACK"))) {
-					;
-				}
 				if(!strcmp(buffer, "ACK")){
 					printf("Packet ACK received: %d/%d - Round trip time = %f\n", packets[packet].frag_no, packets[packet].total_frag, (double)(end - start)/CLOCKS_PER_SEC);
-				}else{
-					--packet;
-					break;
+				} else {
+					nanosleep(&timeout_wait, &timeout_wait);
 				}
+				break;
 				// } else if (buffer[0] == 'N') {
 				// 	int expecting;
 				// 	sscanf(buffer, "NACK:%d", &expecting);
@@ -154,7 +151,7 @@ int main(int argc, char* argv[]) {
 				end = clock();
 				printf("Timeout for packet %d/%d - %fs passed - resending\n", packets[packet].frag_no, packets[packet].total_frag, (double)(end - start)/CLOCKS_PER_SEC);
 				nanosleep(&timeout_wait, &timeout_wait);
-				printf("%d\n", timeout_wait.tv_nsec);
+				timeout *= 1.1;
 			}
 		}
 	}
