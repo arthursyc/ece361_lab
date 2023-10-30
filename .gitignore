@@ -1,3 +1,5 @@
 *
 !*.c
 !Makefile
+!received
+!sent

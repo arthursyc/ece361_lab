@@ -120,6 +120,7 @@ int main(int argc, char* argv[]) {
 	int timeout = ((double)(end - start)/CLOCKS_PER_SEC) * 1000000 * 40;
 	timeout_wait.tv_nsec = timeout * 1000;
 	printf("Section 4: Timeout interval: %dus\n", timeout);
+	srand(time(NULL));
 	sleep(5);
 
 	for (int packet = 0; packet < total_packets; ++packet) {
