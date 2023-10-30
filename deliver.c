@@ -9,6 +9,7 @@
 #include <time.h>
 #include <sys/select.h>
 #include <sys/time.h>
+#include <math.h>
 
 #define MAX_LINE 1024
 
@@ -116,7 +117,7 @@ int main(int argc, char* argv[]) {
 			break;
 		}
 	}
-	int timeout = ((double)(end - start)/CLOCKS_PER_SEC) * 1000000 * 20;
+	int timeout = ((double)(end - start)/CLOCKS_PER_SEC) * 1000000 * 40;
 	timeout_wait.tv_nsec = timeout * 1000;
 	printf("Section 4: Timeout interval: %dus\n", timeout);
 	sleep(5);
@@ -130,28 +131,26 @@ int main(int argc, char* argv[]) {
 			sendto(sockfd, (const char *)packetstr, sizeof(packetstr), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
 			printf("Packet sent: %d/%d\n", packets[packet].frag_no, packets[packet].total_frag);
 			t.tv_usec = timeout;
-			start = clock();
 			if (select((sockfd + 1), &socks, NULL, NULL, &t)) {
 				n = recvfrom(sockfd, (char *)buffer, MAX_LINE, MSG_WAITALL, (struct sockaddr *) &servaddr, &len);
 				end = clock();
 				buffer[n] = '\0';
 				if(!strcmp(buffer, "ACK")){
 					printf("Packet ACK received: %d/%d - Round trip time = %f\n", packets[packet].frag_no, packets[packet].total_frag, (double)(end - start)/CLOCKS_PER_SEC);
-				} else {
+				} else if (buffer[0] == 'N') {
+					int expecting;
+					sscanf(buffer, "NACK:%d", &expecting);
+					printf("Packet NACK received: %d/%d - expecting %d/%d\n", packets[packet].frag_no, packets[packet].total_frag, expecting, packets[packet].total_frag);
+					packet = expecting - 2;
 					nanosleep(&timeout_wait, &timeout_wait);
 				}
 				break;
-				// } else if (buffer[0] == 'N') {
-				// 	int expecting;
-				// 	sscanf(buffer, "NACK:%d", &expecting);
-				// 	printf("Packet NACK received: %d/%d - expecting %d/%d\n", packets[packet].frag_no, packets[packet].total_frag, expecting, packets[packet].total_frag);
-				// 	packet = expecting;
-				// }
 			} else {
-				end = clock();
 				printf("Timeout for packet %d/%d - %fs passed - resending\n", packets[packet].frag_no, packets[packet].total_frag, (double)(end - start)/CLOCKS_PER_SEC);
+				FD_ZERO(&socks);
+				FD_SET(sockfd, &socks);
 				nanosleep(&timeout_wait, &timeout_wait);
-				timeout *= 1.1;
+				timeout *= 1.01;
 			}
 		}
 	}

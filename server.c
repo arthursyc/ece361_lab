@@ -72,7 +72,14 @@ int main(int argc, char* argv[]) {
 	int expecting_packet = 1;
 	int total_filesize = 0;
 	while (1) {
-		recvfrom(sockfd, recvpacketstr, sizeof(recvpacketstr), MSG_WAITALL, (struct sockaddr*) &cliaddr, &len);
+		if (rand() % 10) {
+			printf("Receiving packet...\n");
+			recvfrom(sockfd, recvpacketstr, sizeof(recvpacketstr), MSG_WAITALL, (struct sockaddr*) &cliaddr, &len);
+		} else {
+			printf("Ignoring packet...\n");
+			recvfrom(sockfd, recvpacketstr, sizeof(recvpacketstr), MSG_WAITALL, (struct sockaddr*) &cliaddr, &len);
+			continue;
+		}
 
 		struct packet recvpacket;
 		int C = 0;
@@ -119,11 +126,10 @@ int main(int argc, char* argv[]) {
 		}
 
 		if (recvpacket.frag_no != expecting_packet && recvpacket.frag_no != -1) {
-			// char NACKMSG[MAX_LINE];
-			// sprintf(NACKMSG, "NACK:%d", expecting_packet);
-			// sendto(sockfd, (const char*) NACKMSG, strlen(NACKMSG), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
-			// printf("Packet NACK sent: %d/%d - expecting %d/%d\n", recvpacket.frag_no, recvpacket.total_frag, expecting_packet, recvpacket.total_frag);
-			sendto(sockfd, (const char*) ACK, strlen(ACK), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
+			char NACKMSG[MAX_LINE];
+			sprintf(NACKMSG, "NACK:%d", expecting_packet);
+			sendto(sockfd, (const char*) NACKMSG, strlen(NACKMSG), MSG_CONFIRM, (const struct sockaddr*) &cliaddr, len);
+			printf("Packet already received, NACK sent: %d/%d - expecting %d/%d\n", recvpacket.frag_no, recvpacket.total_frag, expecting_packet, recvpacket.total_frag);
 			free(recvpacket.filename);
 			continue;
 		}
