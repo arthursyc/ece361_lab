@@ -1,5 +1,4 @@
-*
-!*.c
-!Makefile
-!received
-!sent
+.vscode
+*.jpg
+*.png
+*.txt
