@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
@@ -11,6 +12,17 @@
 
 int* clifd;
 int clifd_num;
+
+struct client clients[8] = {
+	{"Alex", "alexawsm", "", 0, false},
+	{"Billy", "billy123", "", 0, false},
+	{"Carol", "carcarca", "", 0, false},
+	{"Dean", "amongsus", "", 0, false},
+	{"Elaine", "12345678", "", 0, false},
+	{"Farquaad", "shrexy", "", 0, false},
+	{"Gwyn", "gwyngwyn", "", 0, false},
+	{"Hector", "dingding", "", 0, false}
+};
 
 int main(int argc, char* argv[]) {
 	if (argc != 2) {
@@ -55,15 +67,10 @@ int main(int argc, char* argv[]) {
 			continue;
 		}
 
-		bool newfd = true;
-		for (int i = 0; i < clifd_num; ++i) {
-			if (clifd[i] == newsockfd) newfd = false;
-		}
-		if (newfd) {
-			clifd = (int*) reallocarray(clifd, clifd_num, sizeof(int));
-			clifd[clifd_num++] = newsockfd;
-		}
+		char buff[64];
+		read(newsockfd, buff, sizeof(buff));
 
+		printf("%s\n", buff);
 
 	}
 }
