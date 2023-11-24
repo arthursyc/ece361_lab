@@ -1,0 +1,4 @@
+1. Break data in packets containing max_data.
+2. Send up a break flag that breaks fields apart.
+3. Concantenate as a single string.
+4. If control flag occurs in any field of this message, we double the flag presence where it occurs.
