@@ -1,3 +1,3 @@
 files:
-	gcc server/server.c -o server/server
-	gcc client/client.c -o client/client
+	gcc server/server.c helpers.c -o server/server
+	gcc client/client.c helpers.c -o client/client

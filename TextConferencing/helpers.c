@@ -3,8 +3,7 @@
 
 #include "helpers.h"
 
-char** parse(char* buffer) {
-	char delim[] = " ";
+char** parse(char* buffer, char delim[]) {
 	int arr_size = 0;
 	char** array;
 

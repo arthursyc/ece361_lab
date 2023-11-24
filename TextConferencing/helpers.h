@@ -44,5 +44,5 @@ enum type {
 /**
  * @brief Parse a string into an array of strings by tokenize using space
 */
-char** parse(char* buffer);
+char** parse(char* buffer, char delim[]);
 #endif
