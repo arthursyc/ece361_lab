@@ -45,4 +45,16 @@ enum type {
  * @brief Parse a string into an array of strings by tokenize using space
 */
 char** parse(char* buffer, char delim[]);
+/*
+ puts a message struct into a packet in the form a string with control flags
+*/
+void packeting(struct message * msg, char* packet);
+/*
+ reconstruct the message received in the form of a message struct
+*/
+void unbox(char* buffer, struct message* msg);
+/*
+ unbox helper
+*/
+int getwindow(char* buffer, int start);
 #endif

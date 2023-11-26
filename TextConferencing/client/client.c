@@ -7,7 +7,6 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <unistd.h>
-
 #include "../helpers.h"
 
 int main() {
@@ -45,9 +44,14 @@ int main() {
 			memcpy(msg.source, array[1], sizeof(array[1]));
 			memcpy(cliid, array[1], sizeof(array[1]));
 			memcpy(msg.data, array[2], sizeof(array[2]));
+			char* packet = malloc(2*sizeof(msg));
 			free(array);
+			// send
 
 
+			//
+
+			free(packet);
 
 		} else if (strcmp(buffer, "/logout") == 0) {
 
