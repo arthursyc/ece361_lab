@@ -13,6 +13,7 @@ int main() {
 	int sockfd;
 	struct sockaddr_in servaddr, cli;
 	char cliid[MAX_NAME];
+	char sess[MAX_NAME];
 
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 		perror("Socket creation failed");
@@ -40,61 +41,106 @@ int main() {
 				printf("Connected\n");
 			}
 
-			struct message msg = {LOGIN, sizeof(array[2]), "", ""};
-			memcpy(msg.source, array[1], sizeof(array[1]));
+			char outgoing[MAX_DATA];
+			sprintf(outgoing, "%d:%d:%s:%s", LOGIN, sizeof(array[2]), array[1], array[2]);
 			memcpy(cliid, array[1], sizeof(array[1]));
-			memcpy(msg.data, array[2], sizeof(array[2]));
-			char* packet = malloc(2*sizeof(msg));
 			free(array);
-			// send
 
+			write(sockfd, outgoing, sizeof(outgoing));
 
-			//
-
-			free(packet);
+			while (1) {
+				struct message incoming = getMessage(sockfd);
+				if (incoming.type == LO_ACK) {
+					printf(">> Login successful\n");
+					break;
+				} else if (incoming.type == LO_NAK) {
+					printf(">> Login failed: %s\n", incoming.data);
+					break;
+				}
+			}
 
 		} else if (strcmp(buffer, "/logout") == 0) {
 
-			struct message msg = {EXIT, 0, "", ""};
-			memcpy(msg.source, cliid, sizeof(cliid));
+			char outgoing[MAX_DATA];
+			sprintf(outgoing, "%d:%d:%s:%s", EXIT, 0, cliid, "");
+			write(sockfd, outgoing, sizeof(outgoing));
 
 		} else if (strstr(buffer, "/joinsession ") == buffer) {
 
 			char** array = parse(buffer, " ");
 
-			struct message msg = {JOIN, sizeof(array[1]), "", ""};
-			memcpy(msg.source, cliid, sizeof(cliid));
-			memcpy(msg.data, array[1], sizeof(array[1]));
+			char outgoing[MAX_DATA];
+			sprintf(outgoing, "%d:%d:%s:%s", JOIN, sizeof(array[2]), cliid, array[2]);
 			free(array);
 
+			write(sockfd, outgoing, sizeof(outgoing));
+
+			while (1) {
+				struct message incoming = getMessage(sockfd);
+				if (incoming.type == JN_ACK) {
+					printf(">> Join successful\n");
+					break;
+				} else if (incoming.type == JN_NAK) {
+					printf(">> Join failed: %s\n", incoming.data);
+					break;
+				}
+			}
 
 		} else if (strcmp(buffer, "/leavesession") == 0) {
 
-			struct message msg = {LEAVE_SESS, 0, "", ""};
-			memcpy(msg.source, cliid, sizeof(cliid));
+			char outgoing[MAX_DATA];
+			sprintf(outgoing, "%d:%d:%s:%s", LEAVE_SESS, 0, cliid, "");
+			write(sockfd, outgoing, sizeof(outgoing));
 
 		} else if (strstr(buffer, "/createsession ") == buffer) {
 
 			char** array = parse(buffer, " ");
-			struct message msg = {NEW_SESS, sizeof(array[1]), "", ""};
-			memcpy(msg.source, cliid, sizeof(cliid));
-			memcpy(msg.data, array[1], sizeof(array[1]));
+
+			char outgoing[MAX_DATA];
+			sprintf(outgoing, "%d:%d:%s:%s", NEW_SESS, sizeof(array[2]), cliid, array[2]);
 			free(array);
+
+			write(sockfd, outgoing, sizeof(outgoing));
+
+			while (1) {
+				struct message incoming = getMessage(sockfd);
+				if (incoming.type == NS_ACK) {
+					printf(">> New session created\n");
+					break;
+				} else if (incoming.type == JN_NAK) {
+					printf(">> New session creation failed: %s\n", incoming.data);
+					break;
+				}
+			}
 
 		} else if (strcmp(buffer, "/list") == 0) {
 
-			struct message msg = {QUERY, 0, "", ""};
-			memcpy(msg.source, cliid, sizeof(cliid));
+			char outgoing[MAX_DATA];
+			sprintf(outgoing, "%d:%d:%s:%s", QUERY, 0, cliid, "");
+
+			write(sockfd, outgoing, sizeof(outgoing));
+
+			while (1) {
+				struct message incoming = getMessage(sockfd);
+				if (incoming.type == QU_ACK) {
+					printf(">> List:\n%s\n", incoming.data);
+					break;
+				}
+			}
 
 		} else if (strcmp(buffer, "/quit") == 0) {
 
+			char outgoing[MAX_DATA];
+			sprintf(outgoing, "%d:%d:%s:%s", EXIT, 0, cliid, "");
+			write(sockfd, outgoing, sizeof(outgoing));
+			close(sockfd);
 			return 0;
 
 		} else {
 
-			struct message msg = {MESSAGE, sizeof(buffer), "", ""};
-			memcpy(msg.source, cliid, sizeof(cliid));
-			memcpy(msg.data, buffer, sizeof(buffer));
+			char outgoing[MAX_DATA];
+			sprintf(outgoing, "%d:%d:%s:%s", MESSAGE, sizeof(buffer), cliid, buffer);
+			write(sockfd, outgoing, sizeof(outgoing));
 
 		}
 	}

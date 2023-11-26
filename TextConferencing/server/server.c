@@ -10,19 +10,19 @@
 
 #include "../helpers.h"
 
-int* clifd;
-int clifd_num;
-
 struct client clients[8] = {
-	{"Alex", "alexawsm", "", 0, false},
-	{"Billy", "billy123", "", 0, false},
-	{"Carol", "carcarca", "", 0, false},
-	{"Dean", "amongsus", "", 0, false},
-	{"Elaine", "12345678", "", 0, false},
-	{"Farquaad", "shrexy", "", 0, false},
-	{"Gwyn", "gwyngwyn", "", 0, false},
-	{"Hector", "dingding", "", 0, false}
+	{"Alex",		"alexawsm",			false,			-1},
+	{"Billy",		"billy123",			false,			-1},
+	{"Carol",		"carcarca",			false,			-1},
+	{"Dean",		"amongsus",			false,			-1},
+	{"Elaine",		"12345678",			false,			-1},
+	{"Farquaad",	"shrexy",			false,			-1},
+	{"Gwyn",		"gwyngwyn", 		false,			-1},
+	{"Hector",		"dingding",			false,			-1}
 };
+
+char sessions[MAX_SESS][MAX_NAME];
+int sess_num = 0;
 
 int main(int argc, char* argv[]) {
 	if (argc != 2) {
@@ -36,8 +36,6 @@ int main(int argc, char* argv[]) {
 
 	int sockfd, connfd, len;
 	struct sockaddr_in servaddr, cli_addr;
-
-	clifd_num = 0;
 
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 		perror("Socket creation failed");
@@ -60,17 +58,51 @@ int main(int argc, char* argv[]) {
 
 	len = sizeof(cli_addr);
 
+	int pid;
 	while (1) {
-		int newsockfd = accept(sockfd, (struct sockaddr*) &cli_addr, &len);
-		if (newsockfd < 0) {
+		connfd = accept(sockfd, (struct sockaddr*) &cli_addr, &len);
+		if (connfd < 0) {
 			perror("Server accept failed");
 			continue;
 		}
 
-		char buff[64];
-		read(newsockfd, buff, sizeof(buff));
+		while (1) {
+			pid = fork();
+			if (pid < 0) {
+				perror("Fork failed");
+			} else break;
+		}
+		if (pid > 0) {
+			close(connfd);
+		} else {
+			close(sockfd);
 
-		printf("%s\n", buff);
+			struct message incoming = getMessage(connfd);
+			switch (incoming.type) {
+				case LOGIN:
+					break;
+
+				case EXIT:
+					break;
+
+				case JOIN:
+					break;
+
+				case LEAVE_SESS:
+					break;
+
+				case NEW_SESS:
+					break;
+
+				case QUERY:
+					break;
+
+				case MESSAGE:
+					break;
+
+				default: ;
+			}
+		}
 
 	}
 }
