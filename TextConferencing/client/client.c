@@ -107,7 +107,7 @@ int main() {
 				if (incoming.type == NS_ACK) {
 					printf(">> New session created\n");
 					break;
-				} else if (incoming.type == JN_NAK) {
+				} else if (incoming.type == NS_NAK) {
 					printf(">> New session creation failed: %s\n", incoming.data);
 					break;
 				}

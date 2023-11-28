@@ -27,3 +27,12 @@ struct message getMessage(int sockfd) {
 	sscanf(buffer, "%d:%d:%s:%s", &msg.type, &msg.size, &msg.source, &msg.data);
 	return msg;
 }
+
+int findSess(char query[MAX_NAME], char list[MAX_SESS][MAX_NAME], int num) {
+	for (int i = 0; i < num; ++i) {
+		if (strcmp(query, list[i]) == 0) {
+			return i;
+		}
+	}
+	return -1;
+}

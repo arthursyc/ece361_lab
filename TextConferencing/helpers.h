@@ -19,8 +19,9 @@ struct message {
 struct client {
 	char id[MAX_NAME];
 	char pwd[MAX_PWD];
+	int fd;
 	bool online;
-	int sess_id;
+	char sess[MAX_NAME];
 };
 
 enum type {
@@ -34,6 +35,7 @@ enum type {
 	LEAVE_SESS,
 	NEW_SESS,
 	NS_ACK,
+	NS_NAK,
 	MESSAGE,
 	QUERY,
 	QU_ACK,
@@ -51,6 +53,8 @@ char** parse(char* buffer, char delim[]);
  * @brief Receive message from sockfd and put it into struct message form
 */
 struct message getMessage(int sockfd);
+
+int findSess(char query[MAX_NAME], char list[MAX_SESS][MAX_NAME], int num);
 
 // /*
 //  puts a message struct into a packet in the form a string with control flags
