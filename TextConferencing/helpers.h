@@ -36,7 +36,8 @@ enum type {
 	NS_ACK,
 	MESSAGE,
 	QUERY,
-	QU_ACK
+	QU_ACK,
+	REGIS,
 };
 
 /**** functions ****/

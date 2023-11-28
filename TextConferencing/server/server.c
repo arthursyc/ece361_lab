@@ -78,20 +78,39 @@ int main(int argc, char* argv[]) {
 			close(sockfd);
 
 			struct message incoming = getMessage(connfd);
+			int client_num = 0;
+			for(; client_num < 8; client_num ++){
+				if(clients[client_num].id == incoming.source){
+					break;
+				}
+			}
 			switch (incoming.type) {
 				case LOGIN:
+					clients[client_num].online = TRUE;
 					break;
-
+					
 				case EXIT:
+					clients[client_num].online = FALSE;
 					break;
 
 				case JOIN:
+					if(clients[client_num].online){
+
+					}else{
+						//NOT ONLINE THROW EXCEPTION?
+					}
+					//
 					break;
 
 				case LEAVE_SESS:
 					break;
 
 				case NEW_SESS:
+					if(clients[client_num].online){
+
+					}else{
+						//NOT ONLINE THROW EXCEPTION?
+					}
 					break;
 
 				case QUERY:
@@ -100,6 +119,19 @@ int main(int argc, char* argv[]) {
 				case MESSAGE:
 					break;
 
+				case REGIS:
+					//assumme source is username and data is password, expand list of clients
+					struct client new_clients[client_num+1];
+					for(int i = 0; i < client_num+1; client_num ++){
+						if(i < client_num){
+							new_clients[i] = clients[i];
+						}else{
+							struct client new_client = {msg.source, msg.data, FALSE, -1};
+							new_clients[i] = new_client;
+							clients = new_clients;
+						}
+					}
+					break;
 				default: ;
 			}
 		}
