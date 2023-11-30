@@ -19,7 +19,7 @@ struct session {
 	int usercount;
 	char id[MAX_NAME];
 	struct session* next;
-}
+};
 
 struct client {
 	char id[MAX_NAME];
@@ -46,6 +46,7 @@ enum type {
 	QUERY,
 	QU_ACK,
 	REGIS,
+	NONE
 };
 
 /**** functions ****/
@@ -56,9 +57,9 @@ enum type {
 char** parse(char* buffer, char delim[]);
 
 /**
- * @brief Receive message from sockfd and put it into struct message form
+ * @brief Receive message from sockfd and put it into struct message form, timeout if necessary
 */
-struct message getMessage(int sockfd);
+struct message getMessage(int sockfd, bool timeout);
 
 struct session* findSess(char query[MAX_NAME], struct session* sess_head);
 

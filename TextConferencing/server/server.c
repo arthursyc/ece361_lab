@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
 		} else {
 			close(sockfd);
 
-			struct message incoming = getMessage(connfd);
+			struct message incoming = getMessage(connfd, false);
 
 			int cli_index = 0;
 			for (; cli_index < 8; ++cli_index){
@@ -151,7 +151,7 @@ int main(int argc, char* argv[]) {
 				case NEW_SESS:
 
 					sess = findSess(incoming.data, sess_head);
-					if (sess_index == NULL) {
+					if (sess == NULL) {
 
 						struct session* new_sess = malloc(sizeof(struct session));
 						memcpy(new_sess->id, incoming.data, incoming.size);
@@ -169,7 +169,6 @@ int main(int argc, char* argv[]) {
 
 					}
 
-					}
 					write(connfd, outgoing, sizeof(outgoing));
 					break;
 
@@ -208,19 +207,19 @@ int main(int argc, char* argv[]) {
 					}
 					break;
 
-				case REGIS: ;
-					//assumme source is username and data is password, expand list of clients
-					struct client new_clients[cli_index+1];
-					for(int i = 0; i < cli_index+1; cli_index ++){
-						if(i < cli_index){
-							new_clients[i] = clients[i];
-						}else{
-							struct client new_client = {incoming.source, incoming.data, FALSE, -1};
-							new_clients[i] = new_client;
-							clients = new_clients;
-						}
-					}
-					break;
+				// case REGIS: ;
+				// 	//assumme source is username and data is password, expand list of clients
+				// 	struct client new_clients[cli_index+1];
+				// 	for(int i = 0; i < cli_index+1; cli_index ++){
+				// 		if(i < cli_index){
+				// 			new_clients[i] = clients[i];
+				// 		}else{
+				// 			struct client new_client = {incoming.source, incoming.data, FALSE, -1};
+				// 			new_clients[i] = new_client;
+				// 			clients = new_clients;
+				// 		}
+				// 	}
+				// 	break;
 				default: ;
 			}
 		}

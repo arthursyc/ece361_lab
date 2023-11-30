@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/select.h>
+#include <sys/time.h>
 #include "helpers.h"
 
 char** parse(char* buffer, char delim[]) {
@@ -18,9 +20,27 @@ char** parse(char* buffer, char delim[]) {
 	return array;
 }
 
-struct message getMessage(int sockfd) {
+struct message getMessage(int sockfd, bool timeout) {
 	char buffer[1024];
 	bzero(buffer, sizeof(buffer));
+
+	if (timeout) {
+		fd_set socks;
+		FD_ZERO(&socks);
+		FD_SET(sockfd, &socks);
+		struct timeval t;
+		t.tv_sec = 0;
+		t.tv_usec = 500000;
+		if (!(select((sockfd + 1), &socks, NULL, NULL, &t))) {
+			struct message msg;
+			msg.type = NONE;
+			msg.size = 0;
+			memset(msg.source, 0, MAX_NAME);
+			memset(msg.data, 0, MAX_DATA);
+			return msg;
+		}
+	}
+
 	read(sockfd, buffer, sizeof(buffer));
 
 	struct message msg;
