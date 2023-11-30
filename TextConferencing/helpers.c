@@ -8,7 +8,7 @@
 
 char** parse(char* buffer, char delim[]) {
 	int arr_size = 0;
-	char** array;
+	char** array = (char**) malloc(sizeof(char*));
 
 	char* ptr = strtok(buffer, delim);
 	while (ptr != NULL) {
@@ -44,7 +44,12 @@ struct message getMessage(int sockfd, bool timeout) {
 	read(sockfd, buffer, sizeof(buffer));
 
 	struct message msg;
-	sscanf(buffer, "%d:%d:%s:%s", &msg.type, &msg.size, &msg.source, &msg.data);
+	char** array = parse(buffer, ":");
+	msg.type = atoi(array[0]);
+	msg.size = atoi(array[1]);
+	memcpy(msg.source, array[2], sizeof(array[2]));
+	memcpy(msg.data, array[3], msg.size);
+	free(array);
 	return msg;
 }
 

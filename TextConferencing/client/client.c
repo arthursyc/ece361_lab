@@ -13,60 +13,67 @@
 
 int msg_type = NONE;
 bool logged = false;
-pthread_mutex_t* mtx;
+pthread_mutex_t mtx;
 
-void* handleMessages(void* sockfd) {
-	struct message incoming = getMessage(*((int*) sockfd), false);
+void* handleMessages(void* sockfdptr) {
+	int sockfd = *((int*) sockfdptr);
+	struct message incoming = getMessage(sockfd, false);
 
-	pthread_mutex_lock(mtx);
+	pthread_mutex_lock(&mtx);
 	switch (incoming.type) {
 		case LO_ACK:
-			printf(">> Login successful\n");
+			printf("- Login successful\n");
 			msg_type = LO_ACK;
 			logged = true;
 			break;
 
 		case LO_NAK:
-			printf(">> Login failed: %s\n", incoming.data);
+			printf("- Login failed: %s\n", incoming.data);
 			msg_type = LO_NAK;
 			logged = false;
-			pthread_mutex_unlock(mtx);
+			pthread_mutex_unlock(&mtx);
 			return NULL;
 
 		default:
 			;
 	}
-	pthread_mutex_unlock(mtx);
+	pthread_mutex_unlock(&mtx);
+	while (1) {
+		pthread_mutex_lock(&mtx);
+		if (msg_type == NONE) {
+			pthread_mutex_unlock(&mtx);
+			break;
+		}
+		pthread_mutex_unlock(&mtx);
+	}
 
 	while (1) {
+		incoming = getMessage(sockfd, true);
 
-		incoming = getMessage(*((int*) sockfd), true);
-
-		pthread_mutex_lock(mtx);
-
+		pthread_mutex_lock(&mtx);
 		if (!logged) {
-			pthread_mutex_unlock(mtx);
+			pthread_mutex_unlock(&mtx);
 			return NULL;
 		}
 
 		switch (incoming.type) {
 			case JN_ACK:
-				printf(">> Join successful\n");
+				printf("- Join successful\n");
 				msg_type = JN_ACK;
 				break;
 
 			case JN_NAK:
-				printf(">> Join failed: %s\n", incoming.data);
+				printf("- Join failed: %s\n", incoming.data);
 				msg_type = JN_NAK;
 				break;
 
 			case NS_ACK:
-				printf(">> New session created\n");
+				printf("- New session created\n");
 				msg_type = NS_ACK;
 				break;
 
 			case NS_NAK:
-				printf(">> New session creation failed: %s\n", incoming.data);
+				printf("- New session creation failed: %s\n", incoming.data);
 				msg_type = NS_NAK;
 				break;
 
@@ -83,8 +90,15 @@ void* handleMessages(void* sockfd) {
 			default:
 				;
 		}
-		pthread_mutex_unlock(mtx);
-
+		pthread_mutex_unlock(&mtx);
+		while (1) {
+			pthread_mutex_lock(&mtx);
+			if (msg_type == NONE) {
+				pthread_mutex_unlock(&mtx);
+				break;
+			}
+			pthread_mutex_unlock(&mtx);
+		}
 	}
 }
 
@@ -94,14 +108,8 @@ int main() {
 	char cliid[MAX_NAME];
 	pthread_t incoming_thread;
 
-	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-		perror("Socket creation failed");
-		exit(EXIT_FAILURE);
-	}
-
-	memset(&servaddr, 0, sizeof(servaddr));
-
 	while (1) {
+		printf(">> ");
 		char buffer[1024];
 		fgets(buffer, sizeof(buffer), stdin);
 		buffer[strcspn(buffer, "\n")] = '\0';
@@ -110,6 +118,14 @@ int main() {
 
 			char** array = parse(buffer, " ");
 
+			if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+				perror("Socket creation failed");
+				exit(EXIT_FAILURE);
+			}
+
+			memset(&servaddr, 0, sizeof(servaddr));
+
+
 			servaddr.sin_family = AF_INET;
 			servaddr.sin_addr.s_addr = inet_addr(array[3]);
 			servaddr.sin_port = htons(atoi(array[4]));
@@ -117,7 +133,7 @@ int main() {
 				perror("Connect failed");
 				continue;
 			} else {
-				printf("Connected\n");
+				printf(">> Connected\n");
 			}
 
 			char outgoing[MAX_DATA];
@@ -125,30 +141,32 @@ int main() {
 			memcpy(cliid, array[1], sizeof(array[1]));
 			free(array);
 
-			pthread_mutex_init(mtx, NULL);
+			pthread_mutex_init(&mtx, NULL);
 			pthread_create(&incoming_thread, NULL, &handleMessages, &sockfd);
 
 			write(sockfd, outgoing, sizeof(outgoing));
 
 			while (1) {
-				pthread_mutex_lock(mtx);
+				pthread_mutex_lock(&mtx);
 				if (msg_type == LO_ACK || msg_type == LO_NAK) {
 					if (msg_type == LO_NAK) pthread_join(incoming_thread, NULL);
+					pthread_mutex_unlock(&mtx);
 					msg_type = NONE;
 					break;
 				}
-				pthread_mutex_unlock(mtx);
+				pthread_mutex_unlock(&mtx);
 			}
 
 		} else if (strcmp(buffer, "/logout") == 0) {
 
 			char outgoing[MAX_DATA];
+			pthread_mutex_lock(&mtx);
+			logged = false;
+			pthread_mutex_unlock(&mtx);
+			pthread_join(incoming_thread, NULL);
 			sprintf(outgoing, "%d:%d:%s:%s", EXIT, 0, cliid, "");
 			write(sockfd, outgoing, sizeof(outgoing));
-			pthread_mutex_lock(mtx);
-			logged = false;
-			pthread_mutex_unlock(mtx);
-			pthread_join(incoming_thread, NULL);
+			close(sockfd);
 
 		} else if (strstr(buffer, "/joinsession ") == buffer) {
 
@@ -161,12 +179,12 @@ int main() {
 			write(sockfd, outgoing, sizeof(outgoing));
 
 			while (1) {
-				pthread_mutex_lock(mtx);
+				pthread_mutex_lock(&mtx);
 				if (msg_type == JN_ACK || msg_type == JN_NAK) {
 					msg_type = NONE;
 					break;
 				}
-				pthread_mutex_unlock(mtx);
+				pthread_mutex_unlock(&mtx);
 			}
 
 		} else if (strcmp(buffer, "/leavesession") == 0) {
@@ -186,12 +204,12 @@ int main() {
 			write(sockfd, outgoing, sizeof(outgoing));
 
 			while (1) {
-				pthread_mutex_lock(mtx);
+				pthread_mutex_lock(&mtx);
 				if (msg_type == NS_ACK || msg_type == NS_NAK) {
 					msg_type = NONE;
 					break;
 				}
-				pthread_mutex_unlock(mtx);
+				pthread_mutex_unlock(&mtx);
 			}
 
 		} else if (strcmp(buffer, "/list") == 0) {
@@ -202,11 +220,11 @@ int main() {
 			write(sockfd, outgoing, sizeof(outgoing));
 
 			while (1) {
-				pthread_mutex_lock(mtx);
+				pthread_mutex_lock(&mtx);
 				if (msg_type == QU_ACK) {
 					break;
 				}
-				pthread_mutex_unlock(mtx);
+				pthread_mutex_unlock(&mtx);
 			}
 
 		} else if (strcmp(buffer, "/quit") == 0) {
