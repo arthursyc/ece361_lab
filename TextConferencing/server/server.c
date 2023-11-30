@@ -11,19 +11,17 @@
 #include "../helpers.h"
 
 struct client clients[8] = {
-	{"Alex",		"alexawsm",			-1,			false,			""},
-	{"Billy",		"billy123",			-1,			false,			""},
-	{"Carol",		"carcarca",			-1,			false,			""},
-	{"Dean",		"amongsus",			-1,			false,			""},
-	{"Elaine",		"12345678",			-1,			false,			""},
-	{"Farquaad",	"shrexy",			-1,			false,			""},
-	{"Gwyn",		"gwyngwyn", 		-1,			false,			""},
-	{"Hector",		"dingding",			-1,			false,			""}
+	{"Alex",		"alexawsm",			-1,			false,			NULL},
+	{"Billy",		"billy123",			-1,			false,			NULL},
+	{"Carol",		"carcarca",			-1,			false,			NULL},
+	{"Dean",		"amongsus",			-1,			false,			NULL},
+	{"Elaine",		"12345678",			-1,			false,			NULL},
+	{"Farquaad",	"shrexy",			-1,			false,			NULL},
+	{"Gwyn",		"gwyngwyn", 		-1,			false,			NULL},
+	{"Hector",		"dingding",			-1,			false,			NULL}
 };
 
-char sessions[MAX_SESS][MAX_NAME];
-int sess_usercount[MAX_SESS];
-int sess_num = 0;
+struct session* sess_head;
 
 int main(int argc, char* argv[]) {
 	if (argc != 2) {
@@ -87,7 +85,7 @@ int main(int argc, char* argv[]) {
 				}
 			}
 
-			int sess_index;
+			struct session* sess;
 
 			char outgoing[MAX_DATA];
 			switch (incoming.type) {
@@ -122,15 +120,15 @@ int main(int argc, char* argv[]) {
 					break;
 
 				case JOIN:
-					sess_index = findSess(incoming.data, sessions, sess_num);
-					if (sess_index == -1) {
+					sess = findSess(incoming.data, sess_head);
+					if (sess == NULL) {
 
 						sprintf(outgoing, "%d:%d:%s:%s", JN_NAK, 17, "server", "Session not found");
 
 					} else {
 
-						memcpy(clients[cli_index].sess, incoming.data, incoming.size);
-						++sess_usercount[sess_index];
+						clients[cli_index].sess = sess;
+						++sess->usercount;
 						sprintf(outgoing, "%d:%d:%s:%s", JN_ACK, 0, "server", "");
 
 					}
@@ -138,35 +136,38 @@ int main(int argc, char* argv[]) {
 					break;
 
 				case LEAVE_SESS:
-					sess_index = findSess(clients[cli_index].sess, sessions, sess_num);
-					memset(clients[cli_index].sess, 0, MAX_NAME);
-					if (--sess_usercount[sess_index] == 0) {
-						for (int i = sess_index; i < sess_num - 1; ++i) {
-							memcpy(sessions[i], sessions[i+1], MAX_NAME);
-							sess_usercount[i] = sess_usercount[i+1];
+
+					sess = clients[cli_index].sess;
+					if (sess != NULL) {
+						if (--sess->usercount == 0) {
+							struct session* cur = sess_head;
+							for (; cur->next != sess; cur = cur->next);
+							cur->next = sess->next;
+							free(sess);
 						}
-						memset(sessions[--sess_num], 0, MAX_NAME);
+						clients[cli_index].sess = NULL;
 					}
 
 				case NEW_SESS:
-					if (sess_num == MAX_SESS) {
 
-						sprintf(outgoing, "%d:%d:%s:%s", NS_NAK, 18, "server", "Max sessions reached");
+					sess = findSess(incoming.data, sess_head);
+					if (sess_index == NULL) {
+
+						struct session* new_sess = malloc(sizeof(struct session));
+						memcpy(new_sess->id, incoming.data, incoming.size);
+						new_sess->usercount = 0;
+						new_sess->next = NULL;
+						struct session* cur = sess_head;
+						for (; cur->next != NULL; cur = cur->next);
+						cur->next = new_sess;
+						clients[cli_index].sess = new_sess;
+						sprintf(outgoing, "%d:%d:%s:%s", NS_ACK, 0, "server", "");
 
 					} else {
 
-						sess_index = findSess(incoming.data, sessions, sess_num);
-						if (sess_index == -1) {
+						sprintf(outgoing, "%d:%d:%s:%s", NS_NAK, 22, "server", "Session already exists");
 
-							memcpy(sessions[sess_num], incoming.data, incoming.size);
-							memcpy(clients[cli_index].sess, incoming.data, incoming.size);
-							sprintf(outgoing, "%d:%d:%s:%s", NS_ACK, 0, "server", "");
-
-						} else {
-
-							sprintf(outgoing, "%d:%d:%s:%s", NS_NAK, 22, "server", "Session already exists");
-
-						}
+					}
 
 					}
 					write(connfd, outgoing, sizeof(outgoing));
@@ -183,9 +184,9 @@ int main(int argc, char* argv[]) {
 						}
 					}
 					strcat(query, "\nAvailable Sessions and Number of Users in Session:\n");
-					for (int i = 0; i < sess_num; ++i) {
+					for (struct session* cur = sess_head; cur != NULL; cur = cur->next) {
 						char session[MAX_DATA];
-						sprintf(session, "%s - %d\n", sessions[i], sess_usercount[i]);
+						sprintf(session, "%s - %d\n", cur->id, cur->usercount);
 						strcat(query, session);
 					}
 					strcat(query, "\n");
@@ -198,7 +199,7 @@ int main(int argc, char* argv[]) {
 					for (int i = 0; i < 8; ++i) {
 						if (i != cli_index &&
 						  clients[i].online &&
-						  strcmp(clients[i].sess, clients[cli_index].sess) == 0) {
+						  clients[i].sess == clients[cli_index].sess) {
 
 							sprintf(outgoing, "%d:%d:%s:%s", MESSAGE, incoming.size, incoming.source, incoming.data);
 							write(clients[i].fd, outgoing, sizeof(outgoing));

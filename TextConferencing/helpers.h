@@ -6,7 +6,6 @@
 #define MAX_NAME	16
 #define MAX_PWD		8
 #define MAX_DATA	1024
-#define MAX_SESS	8
 
 /**** structs and enums ****/
 struct message {
@@ -16,13 +15,20 @@ struct message {
 	unsigned char data[MAX_DATA];
 };
 
+struct session {
+	int usercount;
+	char id[MAX_NAME];
+	struct session* next;
+}
+
 struct client {
 	char id[MAX_NAME];
 	char pwd[MAX_PWD];
 	int fd;
 	bool online;
-	char sess[MAX_NAME];
+	struct session* sess;
 };
+
 
 enum type {
 	LOGIN,
@@ -54,7 +60,7 @@ char** parse(char* buffer, char delim[]);
 */
 struct message getMessage(int sockfd);
 
-int findSess(char query[MAX_NAME], char list[MAX_SESS][MAX_NAME], int num);
+struct session* findSess(char query[MAX_NAME], struct session* sess_head);
 
 // /*
 //  puts a message struct into a packet in the form a string with control flags

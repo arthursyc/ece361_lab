@@ -28,11 +28,14 @@ struct message getMessage(int sockfd) {
 	return msg;
 }
 
-int findSess(char query[MAX_NAME], char list[MAX_SESS][MAX_NAME], int num) {
-	for (int i = 0; i < num; ++i) {
-		if (strcmp(query, list[i]) == 0) {
-			return i;
+struct session* findSess(char query[MAX_NAME], struct session* sess_head) {
+	struct session* cur = sess_head;
+	while (cur != NULL) {
+		if (strcmp(cur->id, query) == 0) {
+			return cur;
+		} else {
+			cur = cur->next;
 		}
 	}
-	return -1;
+	return NULL;
 }
