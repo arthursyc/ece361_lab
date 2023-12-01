@@ -64,3 +64,59 @@ struct session* findSess(char query[MAX_NAME], struct session* sess_head) {
 	}
 	return NULL;
 }
+
+
+client_list * load_client_list(){
+	FILE* fptr;
+	fptr = fopen("clientlist.txt", "r");
+	if(fptr == NULL){
+		; // throw some missing file warning?
+	}
+	client_list * list = malloc(sizeof(client_list));
+	list->length = 0;
+	client_node * tail = malloc(sizeof(client_node));
+	while(1){
+		char buffer[MAX_LINE];
+		if(fgets(buffer, MAX_LINE, fptr) == NULL){
+			break;
+		}
+		char** array = parse(buffer, ":");
+		struct client * new_client = malloc(sizeof(struct client));
+		memcpy(new_client->id, array[0], sizeof(array[0]));
+		memcpy(new_client->pwd, array[1], sizeof(array[1]));
+		// df, online, sess take default values, never written to the actual file
+		new_client->fd = -1;
+		new_client->online = false;
+		new_client->sess = NULL;
+		client_node * new_node = malloc(sizeof(client_node));
+		new_node->client = new_client;
+		new_node->next = NULL;
+		if(list->head == NULL){
+			list->head = new_node;
+			tail = new_node;
+			list->tail = new_node;
+		}else{
+			tail->next = new_node;
+			list->tail = tail->next;
+			tail = tail->next;
+		}
+		list->length++;
+	}
+	fclose(fptr);
+	return list;
+}
+
+client_node * find_client(client_list * list, char* id){
+	if((list == NULL)|(list->head == NULL)){
+		return NULL;
+	}
+	client_node * curr = list->head;
+	while(curr != NULL){
+		if(strstr(curr->client->id, id) != NULL){
+			return curr;
+		}else{
+			curr = curr->next;
+		}
+	}
+	return NULL;
+}

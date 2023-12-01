@@ -10,7 +10,6 @@
 #include <pthread.h>
 
 #include "../helpers.h"
-
 struct client clients[8] = {
 	{"Alex",		"alexawsm",			-1,			false,			NULL},
 	{"Billy",		"billy123",			-1,			false,			NULL},
@@ -25,6 +24,9 @@ pthread_mutex_t client_mtx;
 
 struct session* sess_head;
 pthread_mutex_t sess_mtx;
+client_list * list;
+
+
 
 void* handleMessages(void* connfdptr) {
 	int connfd = *((int*) connfdptr);
@@ -194,19 +196,34 @@ void* handleMessages(void* connfdptr) {
 				pthread_mutex_unlock(&sess_mtx);
 				break;
 
-			// case REGIS: ;
-			// 	//assumme source is username and data is password, expand list of clients
-			// 	struct client new_clients[cli_index+1];
-			// 	for(int i = 0; i < cli_index+1; cli_index ++){
-			// 		if(i < cli_index){
-			// 			new_clients[i] = clients[i];
-			// 		}else{
-			// 			struct client new_client = {incoming.source, incoming.data, FALSE, -1};
-			// 			new_clients[i] = new_client;
-			// 			clients = new_clients;
-			// 		}
-			// 	}
-			// 	break;
+			case REGIS: 
+				pthread_mutex_lock(&client_mtx);
+				if(find_client(list, incoming.source) != NULL){
+					;//already registered, throw an message back?
+				}
+				struct client * new_client = malloc(sizeof(struct client));
+				memcpy(new_client->id, incoming.source, sizeof(incoming.source));
+				memcpy(new_client->pwd, incoming.data, sizeof(incoming.data));
+				new_client->fd = -1;
+				new_client->online = true;
+				new_client->sess = NULL;
+				client_node * new_node = malloc(sizeof(client_node));
+				new_node->client = new_client;
+				new_node->next = NULL;
+				list->tail->next = new_node;
+				list->tail = list->tail->next;
+				list->length++;
+				//write new client onto the file
+				FILE* fptr;
+				fptr = fopen("clientlist.txt", "a");
+				if(fptr == NULL){
+					;// message?
+				}else{
+					fprintf(fptr, "%s:%s", incoming.source, incoming.data);
+				}
+				fclose(fptr);
+				pthread_mutex_unlock(&client_mtx);
+				break;
 			default: ;
 		}
 	}
@@ -248,6 +265,8 @@ int main(int argc, char* argv[]) {
 
 	pthread_mutex_init(&client_mtx, NULL);
 	pthread_mutex_init(&sess_mtx, NULL);
+
+	list = load_client_list();
 
 	while (1) {
 

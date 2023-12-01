@@ -6,6 +6,7 @@
 #define MAX_NAME	16
 #define MAX_PWD		8
 #define MAX_DATA	1024
+#define MAX_LINE    1024
 
 /**** structs and enums ****/
 struct message {
@@ -26,8 +27,19 @@ struct client {
 	char pwd[MAX_PWD];
 	int fd;
 	bool online;
-	struct session* sess;
+	struct session* sess; 
 };
+
+typedef struct client_node{
+	struct client * client;
+	struct client_node* next;
+}client_node;
+
+typedef struct client_list{
+	struct client_node * head;
+	struct client_node * tail;
+	int length;
+}client_list;
 
 
 enum type {
@@ -62,6 +74,12 @@ char** parse(char* buffer, char delim[]);
 struct message getMessage(int sockfd, bool timeout);
 
 struct session* findSess(char query[MAX_NAME], struct session* sess_head);
+
+client_list * load_client_list();
+
+client_node * find_client(client_list * list, char* id);
+
+
 
 // /*
 //  puts a message struct into a packet in the form a string with control flags
