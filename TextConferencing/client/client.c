@@ -159,6 +159,11 @@ int main() {
 
 		} else if (strcmp(buffer, "/logout") == 0) {
 
+			if (!logged) {
+				printf("- Not logged in\n");
+				continue;
+			}
+
 			char outgoing[MAX_DATA];
 			pthread_mutex_lock(&mtx);
 			logged = false;
@@ -169,6 +174,13 @@ int main() {
 			close(sockfd);
 
 		} else if (strstr(buffer, "/joinsession ") == buffer) {
+
+			pthread_mutex_lock(&mtx);
+			if (!logged) {
+				printf("- Not logged in\n");
+				continue;
+			}
+			pthread_mutex_unlock(&mtx);
 
 			char** array = parse(buffer, " ");
 
@@ -190,11 +202,25 @@ int main() {
 
 		} else if (strcmp(buffer, "/leavesession") == 0) {
 
+			pthread_mutex_lock(&mtx);
+			if (!logged) {
+				printf("- Not logged in\n");
+				continue;
+			}
+			pthread_mutex_unlock(&mtx);
+
 			char outgoing[MAX_DATA];
 			sprintf(outgoing, "%d:%d:%s:%s", LEAVE_SESS, 1, cliid, " ");
 			write(sockfd, outgoing, sizeof(outgoing));
 
 		} else if (strstr(buffer, "/createsession ") == buffer) {
+
+			pthread_mutex_lock(&mtx);
+			if (!logged) {
+				printf("- Not logged in\n");
+				continue;
+			}
+			pthread_mutex_unlock(&mtx);
 
 			char** array = parse(buffer, " ");
 
@@ -216,6 +242,13 @@ int main() {
 
 		} else if (strcmp(buffer, "/list") == 0) {
 
+			pthread_mutex_lock(&mtx);
+			if (!logged) {
+				printf("- Not logged in\n");
+				continue;
+			}
+			pthread_mutex_unlock(&mtx);
+
 			char outgoing[MAX_DATA];
 			sprintf(outgoing, "%d:%d:%s:%s", QUERY, 1, cliid, " ");
 
@@ -233,6 +266,13 @@ int main() {
 
 		} else if (strcmp(buffer, "/quit") == 0) {
 
+			pthread_mutex_lock(&mtx);
+			if (!logged) {
+				printf("- Not logged in\n");
+				continue;
+			}
+			pthread_mutex_unlock(&mtx);
+
 			char outgoing[MAX_DATA];
 			sprintf(outgoing, "%d:%d:%s:%s", EXIT, 1, cliid, " ");
 			write(sockfd, outgoing, sizeof(outgoing));
@@ -241,9 +281,22 @@ int main() {
 
 		} else if (buffer[0] == '/') {
 
+			pthread_mutex_lock(&mtx);
+			if (!logged) {
+				printf("- Not logged in\n");
+				continue;
+			}
+			pthread_mutex_unlock(&mtx);
 			printf("- Invalid command\n");
 
 		} else {
+
+			pthread_mutex_lock(&mtx);
+			if (!logged) {
+				printf("- Not logged in\n");
+				continue;
+			}
+			pthread_mutex_unlock(&mtx);
 
 			char outgoing[MAX_DATA];
 			sprintf(outgoing, "%d:%d:%s:%s", MESSAGE, sizeof(buffer), cliid, buffer);
