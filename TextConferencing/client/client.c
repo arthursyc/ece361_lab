@@ -181,6 +181,7 @@ int main() {
 			while (1) {
 				pthread_mutex_lock(&mtx);
 				if (msg_type == JN_ACK || msg_type == JN_NAK) {
+					pthread_mutex_unlock(&mtx);
 					msg_type = NONE;
 					break;
 				}
@@ -206,6 +207,7 @@ int main() {
 			while (1) {
 				pthread_mutex_lock(&mtx);
 				if (msg_type == NS_ACK || msg_type == NS_NAK) {
+					pthread_mutex_unlock(&mtx);
 					msg_type = NONE;
 					break;
 				}

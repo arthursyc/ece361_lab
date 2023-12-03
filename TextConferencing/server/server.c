@@ -127,7 +127,7 @@ void* handleMessages(void* connfdptr) {
 
 					struct session* new_sess = malloc(sizeof(struct session));
 					memcpy(new_sess->id, incoming.data, incoming.size);
-					new_sess->usercount = 0;
+					new_sess->usercount = 1;
 					new_sess->next = NULL;
 					if (sess_head != NULL) {
 						struct session* cur = sess_head;
@@ -157,6 +157,7 @@ void* handleMessages(void* connfdptr) {
 				pthread_mutex_lock(&client_mtx);
 				for (client_node* cur; cur != NULL; cur = cur->next) {
 					if (cur->client->online) {
+						printf("%s\n", cur->client->id);
 						strcat(query, cur->client->id);
 						strcat(query, "\n");
 					}
