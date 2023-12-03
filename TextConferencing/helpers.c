@@ -80,6 +80,7 @@ client_list * load_client_list(){
 		if(fgets(buffer, MAX_LINE, fptr) == NULL){
 			break;
 		}
+		buffer[strcspn(buffer, "\n")] = '\0';
 		char** array = parse(buffer, ":");
 		struct client * new_client = malloc(sizeof(struct client));
 		memcpy(new_client->id, array[0], sizeof(array[0]));
@@ -106,7 +107,7 @@ client_list * load_client_list(){
 	return list;
 }
 
-client_node * find_client(client_list * list, char* id){
+client_node * find_client(client_list * list, char id[MAX_NAME]){
 	if((list == NULL)|(list->head == NULL)){
 		return NULL;
 	}

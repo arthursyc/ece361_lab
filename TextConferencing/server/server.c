@@ -26,20 +26,13 @@ struct session* sess_head;
 pthread_mutex_t sess_mtx;
 client_list * list;
 
-
-
 void* handleMessages(void* connfdptr) {
 	int connfd = *((int*) connfdptr);
 	while (1) {
 		struct message incoming = getMessage(connfd, false);
 
-		int cli_index = 0;
 		pthread_mutex_lock(&client_mtx);
-		for (; cli_index < 8; ++cli_index) {
-			if (strcmp(clients[cli_index].id, incoming.source) == 0) {
-				break;
-			}
-		}
+		client_node* cli_node = find_client(list, incoming.source);
 		pthread_mutex_unlock(&client_mtx);
 
 		struct session* sess;
@@ -47,38 +40,42 @@ void* handleMessages(void* connfdptr) {
 		char outgoing[MAX_DATA];
 		switch (incoming.type) {
 			case LOGIN:
+				printf("%s\n", cli_node->client->pwd);
+				printf("%s\n", incoming.data);
 				pthread_mutex_lock(&client_mtx);
-				if (cli_index == 8) {
+				if (cli_node == NULL) {
 					sprintf(outgoing, "%d:%d:%s:%s", LO_NAK, 14, "server", "User not found");
 
-				} else if (clients[cli_index].online) {
+				} else if (cli_node->client->online) {
 					sprintf(outgoing, "%d:%d:%s:%s", LO_NAK, 19, "server", "User already online");
 
-				} else if (strcmp(clients[cli_index].pwd, incoming.data) == 0) {
+				} else if (strcmp(cli_node->client->pwd, incoming.data)) {
 					sprintf(outgoing, "%d:%d:%s:%s", LO_NAK, 14, "server", "Wrong password");
 
 				} else {
-					clients[cli_index].online = true;
-					clients[cli_index].fd = connfd;
+					cli_node->client->online = true;
+					cli_node->client->fd = connfd;
 					sprintf(outgoing, "%d:%d:%s:%s", LO_ACK, 1, "server", " ");
-					printf("%s logged in\n", clients[cli_index].id);
+					printf("%s logged in\n", cli_node->client->id);
 
 				}
 				write(connfd, outgoing, sizeof(outgoing));
-				if (!clients[cli_index].online) {
+				if (!cli_node->client->online) {
 					close(connfd);
-					clients[cli_index].fd = -1;
+					cli_node->client->fd = -1;
+					pthread_mutex_unlock(&client_mtx);
 					return NULL;
+				} else {
+					pthread_mutex_unlock(&client_mtx);
 				}
-				pthread_mutex_unlock(&client_mtx);
 				break;
 
 			case EXIT:
 				pthread_mutex_lock(&client_mtx);
-				if (cli_index < 8 && clients[cli_index].online) {
-					clients[cli_index].online = false;
-					clients[cli_index].fd = -1;
-					printf("%s logged out\n", clients[cli_index].id);
+				if (cli_node != NULL && cli_node->client->online) {
+					cli_node->client->online = false;
+					cli_node->client->fd = -1;
+					printf("%s logged out\n", cli_node->client->id);
 				}
 				pthread_mutex_unlock(&client_mtx);
 				close(connfd);
@@ -95,10 +92,10 @@ void* handleMessages(void* connfdptr) {
 				} else {
 
 					pthread_mutex_lock(&client_mtx);
-					clients[cli_index].sess = sess;
+					cli_node->client->sess = sess;
 					++sess->usercount;
 					sprintf(outgoing, "%d:%d:%s:%s", JN_ACK, 1, "server", " ");
-					printf("%s joined session %s\n", clients[cli_index].id, sess->id);
+					printf("%s joined session %s\n", cli_node->client->id, sess->id);
 					pthread_mutex_unlock(&client_mtx);
 
 				}
@@ -108,11 +105,11 @@ void* handleMessages(void* connfdptr) {
 
 			case LEAVE_SESS:
 				pthread_mutex_lock(&sess_mtx);
-				sess = clients[cli_index].sess;
+				sess = cli_node->client->sess;
 				if (sess != NULL) {
 					pthread_mutex_lock(&client_mtx);
-					clients[cli_index].sess = NULL;
-					printf("%s left session %s\n", clients[cli_index].id, sess->id);
+					cli_node->client->sess = NULL;
+					printf("%s left session %s\n", cli_node->client->id, sess->id);
 					pthread_mutex_unlock(&client_mtx);
 					if (--sess->usercount == 0) {
 						struct session* cur = sess_head;
@@ -138,8 +135,8 @@ void* handleMessages(void* connfdptr) {
 					for (; cur->next != NULL; cur = cur->next);
 					cur->next = new_sess;
 					pthread_mutex_lock(&client_mtx);
-					clients[cli_index].sess = new_sess;
-					printf("%s created session %s\n", clients[cli_index].id, new_sess->id);
+					cli_node->client->sess = new_sess;
+					printf("%s created session %s\n", cli_node->client->id, new_sess->id);
 					pthread_mutex_unlock(&client_mtx);
 					sprintf(outgoing, "%d:%d:%s:%s", NS_ACK, 1, "server", " ");
 
@@ -156,9 +153,9 @@ void* handleMessages(void* connfdptr) {
 				char query[MAX_DATA] = "";
 				strcat(query, "Online Users:\n");
 				pthread_mutex_lock(&client_mtx);
-				for (int i = 0; i < 8; ++i) {
-					if (clients[i].online) {
-						strcat(query, clients[i].id);
+				for (client_node* cur; cur != NULL; cur = cur->next) {
+					if (cur->client->online) {
+						strcat(query, cur->client->id);
 						strcat(query, "\n");
 					}
 				}
@@ -181,22 +178,22 @@ void* handleMessages(void* connfdptr) {
 			case MESSAGE:
 				pthread_mutex_lock(&client_mtx);
 				pthread_mutex_lock(&sess_mtx);
-				for (int i = 0; i < 8; ++i) {
-					if (i != cli_index &&
-						clients[i].online &&
-						clients[i].sess == clients[cli_index].sess) {
+				for (client_node* cur; cur != NULL; cur = cur->next) {
+					if (cur != cli_node &&
+						cur->client->online &&
+						cur->client->sess == cli_node->client->sess) {
 
 						sprintf(outgoing, "%d:%d:%s:%s", MESSAGE, incoming.size, incoming.source, incoming.data);
-						write(clients[i].fd, outgoing, sizeof(outgoing));
+						write(cur->client->fd, outgoing, sizeof(outgoing));
 
 					}
 				}
-				printf("%s to %s: %s\n", clients[cli_index].id, clients[cli_index].sess->id, incoming.data);
+				printf("%s to %s: %s\n", cli_node->client->id, cli_node->client->sess->id, incoming.data);
 				pthread_mutex_unlock(&client_mtx);
 				pthread_mutex_unlock(&sess_mtx);
 				break;
 
-			case REGIS: 
+			case REGIS:
 				pthread_mutex_lock(&client_mtx);
 				if(find_client(list, incoming.source) != NULL){
 					;//already registered, throw an message back?

@@ -24,10 +24,10 @@ struct session {
 
 struct client {
 	char id[MAX_NAME];
-	char pwd[MAX_PWD];
+	char pwd[MAX_PWD+1];	// NULL CHAR
 	int fd;
 	bool online;
-	struct session* sess; 
+	struct session* sess;
 };
 
 typedef struct client_node{
@@ -77,7 +77,7 @@ struct session* findSess(char query[MAX_NAME], struct session* sess_head);
 
 client_list * load_client_list();
 
-client_node * find_client(client_list * list, char* id);
+client_node * find_client(client_list * list, char id[MAX_NAME]);
 
 
 
