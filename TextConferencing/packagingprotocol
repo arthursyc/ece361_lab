@@ -1,4 +1,4 @@
-1. Break data in packets containing max_data.
-2. Send up a break flag that breaks fields apart.
-3. Concantenate as a single string.
-4. If control flag occurs in any field of this message, we double the flag presence where it occurs.
+1. list has a stored length now, use the length of the list where appropriate
+2. list has a search function, returns NULL if not found, returns pointer to the node if found. 
+3. list has a tail pointer if that is helpful to you
+4. register now leaves newly registered client online, but with fd = -1 and NULL session
