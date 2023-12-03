@@ -133,7 +133,7 @@ int main() {
 				perror("Connect failed");
 				continue;
 			} else {
-				printf(">> Connected\n");
+				printf("- Connected\n");
 			}
 
 			char outgoing[MAX_DATA];
@@ -164,7 +164,7 @@ int main() {
 			logged = false;
 			pthread_mutex_unlock(&mtx);
 			pthread_join(incoming_thread, NULL);
-			sprintf(outgoing, "%d:%d:%s:%s", EXIT, 0, cliid, "");
+			sprintf(outgoing, "%d:%d:%s:%s", EXIT, 1, cliid, " ");
 			write(sockfd, outgoing, sizeof(outgoing));
 			close(sockfd);
 
@@ -173,7 +173,7 @@ int main() {
 			char** array = parse(buffer, " ");
 
 			char outgoing[MAX_DATA];
-			sprintf(outgoing, "%d:%d:%s:%s", JOIN, sizeof(array[2]), cliid, array[2]);
+			sprintf(outgoing, "%d:%d:%s:%s", JOIN, sizeof(array[1]), cliid, array[1]);
 			free(array);
 
 			write(sockfd, outgoing, sizeof(outgoing));
@@ -190,7 +190,7 @@ int main() {
 		} else if (strcmp(buffer, "/leavesession") == 0) {
 
 			char outgoing[MAX_DATA];
-			sprintf(outgoing, "%d:%d:%s:%s", LEAVE_SESS, 0, cliid, "");
+			sprintf(outgoing, "%d:%d:%s:%s", LEAVE_SESS, 1, cliid, " ");
 			write(sockfd, outgoing, sizeof(outgoing));
 
 		} else if (strstr(buffer, "/createsession ") == buffer) {
@@ -198,7 +198,7 @@ int main() {
 			char** array = parse(buffer, " ");
 
 			char outgoing[MAX_DATA];
-			sprintf(outgoing, "%d:%d:%s:%s", NEW_SESS, sizeof(array[2]), cliid, array[2]);
+			sprintf(outgoing, "%d:%d:%s:%s", NEW_SESS, sizeof(array[1]), cliid, array[1]);
 			free(array);
 
 			write(sockfd, outgoing, sizeof(outgoing));
@@ -215,7 +215,7 @@ int main() {
 		} else if (strcmp(buffer, "/list") == 0) {
 
 			char outgoing[MAX_DATA];
-			sprintf(outgoing, "%d:%d:%s:%s", QUERY, 0, cliid, "");
+			sprintf(outgoing, "%d:%d:%s:%s", QUERY, 1, cliid, " ");
 
 			write(sockfd, outgoing, sizeof(outgoing));
 
@@ -230,10 +230,14 @@ int main() {
 		} else if (strcmp(buffer, "/quit") == 0) {
 
 			char outgoing[MAX_DATA];
-			sprintf(outgoing, "%d:%d:%s:%s", EXIT, 0, cliid, "");
+			sprintf(outgoing, "%d:%d:%s:%s", EXIT, 1, cliid, " ");
 			write(sockfd, outgoing, sizeof(outgoing));
 			close(sockfd);
 			return 0;
+
+		} else if (buffer[0] == '/') {
+
+			printf("- Invalid command\n");
 
 		} else {
 

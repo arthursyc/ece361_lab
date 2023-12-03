@@ -42,13 +42,14 @@ struct message getMessage(int sockfd, bool timeout) {
 	}
 
 	read(sockfd, buffer, sizeof(buffer));
-
+	printf("%s\n", buffer);
 	struct message msg;
 	char** array = parse(buffer, ":");
 	msg.type = atoi(array[0]);
 	msg.size = atoi(array[1]);
 	memcpy(msg.source, array[2], sizeof(array[2]));
 	memcpy(msg.data, array[3], msg.size);
+	msg.data[msg.size] = '\0';
 	free(array);
 	return msg;
 }

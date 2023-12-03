@@ -40,8 +40,6 @@ void* handleMessages(void* connfdptr) {
 		char outgoing[MAX_DATA];
 		switch (incoming.type) {
 			case LOGIN:
-				printf("%s\n", cli_node->client->pwd);
-				printf("%s\n", incoming.data);
 				pthread_mutex_lock(&client_mtx);
 				if (cli_node == NULL) {
 					sprintf(outgoing, "%d:%d:%s:%s", LO_NAK, 14, "server", "User not found");
@@ -131,9 +129,13 @@ void* handleMessages(void* connfdptr) {
 					memcpy(new_sess->id, incoming.data, incoming.size);
 					new_sess->usercount = 0;
 					new_sess->next = NULL;
-					struct session* cur = sess_head;
-					for (; cur->next != NULL; cur = cur->next);
-					cur->next = new_sess;
+					if (sess_head != NULL) {
+						struct session* cur = sess_head;
+						for (; cur->next != NULL; cur = cur->next);
+						cur->next = new_sess;
+					} else {
+						sess_head = new_sess;
+					}
 					pthread_mutex_lock(&client_mtx);
 					cli_node->client->sess = new_sess;
 					printf("%s created session %s\n", cli_node->client->id, new_sess->id);
@@ -176,6 +178,7 @@ void* handleMessages(void* connfdptr) {
 				break;
 
 			case MESSAGE:
+				if (cli_node->client->sess == NULL) break;
 				pthread_mutex_lock(&client_mtx);
 				pthread_mutex_lock(&sess_mtx);
 				for (client_node* cur; cur != NULL; cur = cur->next) {
