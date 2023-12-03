@@ -58,7 +58,7 @@ void* handleMessages(void* connfdptr) {
 
 				}
 				write(connfd, outgoing, sizeof(outgoing));
-				if (!cli_node->client->online) {
+				if (cli_node->client->fd != connfd) {
 					close(connfd);
 					cli_node->client->fd = -1;
 					pthread_mutex_unlock(&client_mtx);
@@ -165,26 +165,24 @@ void* handleMessages(void* connfdptr) {
 				break;
 
 			case QUERY: ;
-				char query[MAX_DATA] = "";
-				strcat(query, "Online Users:\n");
+				char query[MAX_DATA] = "|-------------------|\n___Online Users___\n";
 				pthread_mutex_lock(&client_mtx);
-				for (client_node* cur; cur != NULL; cur = cur->next) {
+				for (client_node* cur = list->head; cur != NULL; cur = cur->next) {
 					if (cur->client->online) {
-						printf("%s\n", cur->client->id);
 						strcat(query, cur->client->id);
 						strcat(query, "\n");
 					}
 				}
 				pthread_mutex_unlock(&client_mtx);
 
-				strcat(query, "\nAvailable Sessions and Number of Users in Session:\n");
+				strcat(query, "\n___Available Sessions and Number of Users in Session___\n");
 				pthread_mutex_lock(&sess_mtx);
 				for (struct session* cur = sess_head; cur != NULL; cur = cur->next) {
 					char session[MAX_DATA];
 					sprintf(session, "%s - %d\n", cur->id, cur->usercount);
 					strcat(query, session);
 				}
-				strcat(query, "\n");
+				strcat(query, "\n|-------------------|\n");
 				pthread_mutex_unlock(&sess_mtx);
 
 				sprintf(outgoing, "%d:%d:%s:%s", QU_ACK, sizeof(query), "server", query);

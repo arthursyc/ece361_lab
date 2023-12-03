@@ -42,7 +42,6 @@ struct message getMessage(int sockfd, bool timeout) {
 	}
 
 	read(sockfd, buffer, sizeof(buffer));
-	printf("%s\n", buffer);
 	struct message msg;
 	char** array = parse(buffer, ":");
 	msg.type = atoi(array[0]);
