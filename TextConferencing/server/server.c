@@ -207,35 +207,48 @@ void* handleMessages(void* connfdptr) {
 				pthread_mutex_unlock(&client_mtx);
 				pthread_mutex_unlock(&sess_mtx);
 				break;
-
+			/*
 			case REGIS:
 				pthread_mutex_lock(&client_mtx);
 				if(find_client(list, incoming.source) != NULL){
-					;//already registered, throw an message back?
+					sprintf(outgoing, "%d:%d:%s:%s", REG_NAK, 1, "server", " ");;//already registered, throw an message back?
+					printf("%s registered\n", incoming.source);
+					write(connfd, outgoing, sizeof(outgoing));
+					pthread_mutex_unlock(&client_mtx);
+					break;
 				}
 				struct client * new_client = malloc(sizeof(struct client));
-				memcpy(new_client->id, incoming.source, sizeof(incoming.source));
-				memcpy(new_client->pwd, incoming.data, sizeof(incoming.data));
-				new_client->fd = -1;
-				new_client->online = true;
-				new_client->sess = NULL;
 				client_node * new_node = malloc(sizeof(client_node));
 				new_node->client = new_client;
+				printf("1\n");
+				memcpy(new_node->client->id, incoming.source, sizeof(incoming.source));
+				memcpy(new_node->client->pwd, incoming.data, sizeof(incoming.data));
+				printf("2\n");
+				new_node->client->fd = connfd;
+				new_node->client->online = true;
+				new_node->client->sess = NULL;
 				new_node->next = NULL;
+				printf("3\n");
 				list->tail->next = new_node;
 				list->tail = list->tail->next;
 				list->length++;
 				//write new client onto the file
 				FILE* fptr;
 				fptr = fopen("clientlist.txt", "a");
+				printf("4\n");
 				if(fptr == NULL){
 					;// message?
 				}else{
 					fprintf(fptr, "%s:%s", incoming.source, incoming.data);
 				}
+				printf("5\n");
 				fclose(fptr);
+				sprintf(outgoing, "%d:%d:%s:%s", REG_ACK, 1, "server", " ");
+				printf("%s registered\n", incoming.source);
+				write(connfd, outgoing, sizeof(outgoing));
 				pthread_mutex_unlock(&client_mtx);
 				break;
+			*/
 			default: ;
 		}
 	}
