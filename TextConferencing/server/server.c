@@ -83,7 +83,11 @@ void* handleMessages(void* connfdptr) {
 			case JOIN:
 				pthread_mutex_lock(&sess_mtx);
 				sess = findSess(incoming.data, sess_head);
-				if (sess == NULL) {
+				if (cli_node->client->sess != NULL) {
+
+					sprintf(outgoing, "%d:%d:%s:%s", NS_NAK, 18, "server", "Already in session");
+
+				} else if (sess == NULL) {
 
 					sprintf(outgoing, "%d:%d:%s:%s", JN_NAK, 17, "server", "Session not found");
 
@@ -110,11 +114,16 @@ void* handleMessages(void* connfdptr) {
 					printf("%s left session %s\n", cli_node->client->id, sess->id);
 					pthread_mutex_unlock(&client_mtx);
 					if (--sess->usercount == 0) {
-						struct session* cur = sess_head;
-						for (; cur->next != sess; cur = cur->next);
-						cur->next = sess->next;
-						printf("%s closed\n", sess->id);
-						free(sess);
+						if (sess_head->next == NULL) {
+							free(sess_head);
+							sess_head = NULL;
+						} else {
+							struct session* cur = sess_head;
+							for (; cur->next != sess; cur = cur->next);
+							cur->next = sess->next;
+							printf("%s closed\n", sess->id);
+							free(sess);
+						}
 					}
 				}
 				pthread_mutex_unlock(&sess_mtx);
@@ -123,7 +132,11 @@ void* handleMessages(void* connfdptr) {
 			case NEW_SESS:
 				pthread_mutex_lock(&sess_mtx);
 				sess = findSess(incoming.data, sess_head);
-				if (sess == NULL) {
+				if (cli_node->client->sess != NULL) {
+
+					sprintf(outgoing, "%d:%d:%s:%s", NS_NAK, 18, "server", "Already in session");
+
+				} else if (sess == NULL) {
 
 					struct session* new_sess = malloc(sizeof(struct session));
 					memcpy(new_sess->id, incoming.data, incoming.size);
@@ -182,7 +195,7 @@ void* handleMessages(void* connfdptr) {
 				if (cli_node->client->sess == NULL) break;
 				pthread_mutex_lock(&client_mtx);
 				pthread_mutex_lock(&sess_mtx);
-				for (client_node* cur; cur != NULL; cur = cur->next) {
+				for (client_node* cur = list->head; cur != NULL; cur = cur->next) {
 					if (cur != cli_node &&
 						cur->client->online &&
 						cur->client->sess == cli_node->client->sess) {

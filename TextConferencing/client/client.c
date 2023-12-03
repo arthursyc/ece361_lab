@@ -224,6 +224,8 @@ int main() {
 			while (1) {
 				pthread_mutex_lock(&mtx);
 				if (msg_type == QU_ACK) {
+					pthread_mutex_unlock(&mtx);
+					msg_type = NONE;
 					break;
 				}
 				pthread_mutex_unlock(&mtx);
