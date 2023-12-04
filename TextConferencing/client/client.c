@@ -83,7 +83,8 @@ void* handleMessages(void* sockfdptr) {
 				break;
 
 			case MESSAGE:
-				printf("%s: %s\n", incoming.source, incoming.data);
+				printf("\n%s: %s\n>> ", incoming.source, incoming.data);
+				fflush(stdout);
 				msg_type = NONE;
 				break;
 
@@ -117,6 +118,13 @@ int main() {
 
 		if (strstr(buffer, "/login ") == buffer) {
 
+			pthread_mutex_lock(&mtx);
+			if (logged) {
+				printf("- Already logged in\n");
+				continue;
+			}
+			pthread_mutex_unlock(&mtx);
+
 			char** array = parse(buffer, " ");
 
 			if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -138,7 +146,7 @@ int main() {
 			}
 
 			char outgoing[MAX_DATA];
-			sprintf(outgoing, "%d:%d:%s:%s", LOGIN, sizeof(array[2]), array[1], array[2]);
+			sprintf(outgoing, "%d`%d`%s`%s", LOGIN, sizeof(array[2]), array[1], array[2]);
 			memcpy(cliid, array[1], sizeof(array[1]) + 1);
 
 			free(array);
@@ -161,17 +169,19 @@ int main() {
 
 		} else if (strcmp(buffer, "/logout") == 0) {
 
+			pthread_mutex_lock(&mtx);
 			if (!logged) {
 				printf("- Not logged in\n");
 				continue;
 			}
+			pthread_mutex_unlock(&mtx);
 
 			char outgoing[MAX_DATA];
 			pthread_mutex_lock(&mtx);
 			logged = false;
 			pthread_mutex_unlock(&mtx);
 			pthread_join(incoming_thread, NULL);
-			sprintf(outgoing, "%d:%d:%s:%s", EXIT, 1, cliid, " ");
+			sprintf(outgoing, "%d`%d`%s`%s", EXIT, 1, cliid, " ");
 			write(sockfd, outgoing, sizeof(outgoing));
 			close(sockfd);
 
@@ -187,7 +197,7 @@ int main() {
 			char** array = parse(buffer, " ");
 
 			char outgoing[MAX_DATA];
-			sprintf(outgoing, "%d:%d:%s:%s", JOIN, sizeof(array[1]), cliid, array[1]);
+			sprintf(outgoing, "%d`%d`%s`%s", JOIN, sizeof(array[1]), cliid, array[1]);
 			free(array);
 
 			write(sockfd, outgoing, sizeof(outgoing));
@@ -212,7 +222,7 @@ int main() {
 			pthread_mutex_unlock(&mtx);
 
 			char outgoing[MAX_DATA];
-			sprintf(outgoing, "%d:%d:%s:%s", LEAVE_SESS, 1, cliid, " ");
+			sprintf(outgoing, "%d`%d`%s`%s", LEAVE_SESS, 1, cliid, " ");
 			write(sockfd, outgoing, sizeof(outgoing));
 
 		} else if (strstr(buffer, "/createsession ") == buffer) {
@@ -227,9 +237,8 @@ int main() {
 			char** array = parse(buffer, " ");
 
 			char outgoing[MAX_DATA];
-			sprintf(outgoing, "%d:%d:%s:%s", NEW_SESS, sizeof(array[1]), cliid, array[1]);
+			sprintf(outgoing, "%d`%d`%s`%s", NEW_SESS, sizeof(array[1]), cliid, array[1]);
 			free(array);
-			printf("%s\n", outgoing);
 			write(sockfd, outgoing, sizeof(outgoing));
 
 			while (1) {
@@ -252,7 +261,7 @@ int main() {
 			pthread_mutex_unlock(&mtx);
 
 			char outgoing[MAX_DATA];
-			sprintf(outgoing, "%d:%d:%s:%s", QUERY, 1, cliid, " ");
+			sprintf(outgoing, "%d`%d`%s`%s", QUERY, 1, cliid, " ");
 
 			write(sockfd, outgoing, sizeof(outgoing));
 
@@ -276,7 +285,7 @@ int main() {
 			pthread_mutex_unlock(&mtx);
 
 			char outgoing[MAX_DATA];
-			sprintf(outgoing, "%d:%d:%s:%s", EXIT, 1, cliid, " ");
+			sprintf(outgoing, "%d`%d`%s`%s", EXIT, 1, cliid, " ");
 			write(sockfd, outgoing, sizeof(outgoing));
 			close(sockfd);
 			return 0;
@@ -301,7 +310,7 @@ int main() {
 			pthread_mutex_unlock(&mtx);
 
 			char outgoing[MAX_DATA];
-			sprintf(outgoing, "%d:%d:%s:%s", MESSAGE, sizeof(buffer), cliid, buffer);
+			sprintf(outgoing, "%d`%d`%s`%s", MESSAGE, sizeof(buffer), cliid, buffer);
 			write(sockfd, outgoing, sizeof(outgoing));
 
 		}

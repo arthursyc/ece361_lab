@@ -43,7 +43,7 @@ struct message getMessage(int sockfd, bool timeout) {
 
 	read(sockfd, buffer, sizeof(buffer));
 	struct message msg;
-	char** array = parse(buffer, ":");
+	char** array = parse(buffer, "`");
 	msg.type = atoi(array[0]);
 	msg.size = atoi(array[1]);
 	memset(msg.source, 0, sizeof(msg.source));
@@ -51,7 +51,7 @@ struct message getMessage(int sockfd, bool timeout) {
 	msg.source[strcspn(msg.source, "\n")] = '\0';
 	memset(msg.data, 0, sizeof(msg.data));
 	memcpy(msg.data, array[3], msg.size);
-	msg.data[strcspn(msg.data, "\n")] = '\0';
+	msg.data[msg.size] = '\0';
 	free(array);
 	return msg;
 }
@@ -84,7 +84,7 @@ client_list * load_client_list(){
 			break;
 		}
 		buffer[strcspn(buffer, "\n")] = '\0';
-		char** array = parse(buffer, ":");
+		char** array = parse(buffer, "`");
 		struct client * new_client = malloc(sizeof(struct client));
 		memcpy(new_client->id, array[0], sizeof(array[0]));
 		memcpy(new_client->pwd, array[1], sizeof(array[1]));
