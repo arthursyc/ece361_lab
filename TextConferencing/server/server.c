@@ -10,18 +10,8 @@
 #include <pthread.h>
 
 #include "../helpers.h"
-struct client clients[8] = {
-	{"Alex",		"alexawsm",			-1,			false,			NULL},
-	{"Billy",		"billy123",			-1,			false,			NULL},
-	{"Carol",		"carcarca",			-1,			false,			NULL},
-	{"Dean",		"amongsus",			-1,			false,			NULL},
-	{"Elaine",		"12345678",			-1,			false,			NULL},
-	{"Farquaad",	"shrexy",			-1,			false,			NULL},
-	{"Gwyn",		"gwyngwyn", 		-1,			false,			NULL},
-	{"Hector",		"dingding",			-1,			false,			NULL}
-};
-pthread_mutex_t client_mtx;
 
+pthread_mutex_t client_mtx;
 struct session* sess_head;
 pthread_mutex_t sess_mtx;
 client_list * list;
