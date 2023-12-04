@@ -103,11 +103,18 @@ void* handleMessages(void* sockfdptr) {
 	}
 }
 
+void handle_interrupt(int signum) {
+	printf("\n- To quit, use /quit\n>> ");
+	fflush(stdout);
+}
+
 int main() {
 	int sockfd;
 	struct sockaddr_in servaddr, cli;
 	char cliid[MAX_NAME];
 	pthread_t incoming_thread;
+
+	signal(SIGINT, handle_interrupt);
 
 	while (1) {
 		printf(">> ");
@@ -276,13 +283,6 @@ int main() {
 			}
 
 		} else if (strcmp(buffer, "/quit") == 0) {
-
-			pthread_mutex_lock(&mtx);
-			if (!logged) {
-				printf("- Not logged in\n");
-				continue;
-			}
-			pthread_mutex_unlock(&mtx);
 
 			char outgoing[MAX_DATA];
 			sprintf(outgoing, "%d`%d`%s`%s", EXIT, 1, cliid, " ");
