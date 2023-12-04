@@ -111,6 +111,7 @@ int main() {
 	while (1) {
 		printf(">> ");
 		char buffer[1024];
+		bzero(buffer, sizeof(buffer));
 		fgets(buffer, sizeof(buffer), stdin);
 		buffer[strcspn(buffer, "\n")] = '\0';
 
@@ -138,7 +139,8 @@ int main() {
 
 			char outgoing[MAX_DATA];
 			sprintf(outgoing, "%d:%d:%s:%s", LOGIN, sizeof(array[2]), array[1], array[2]);
-			memcpy(cliid, array[1], sizeof(array[1]));
+			memcpy(cliid, array[1], sizeof(array[1]) + 1);
+
 			free(array);
 
 			pthread_mutex_init(&mtx, NULL);
@@ -227,7 +229,7 @@ int main() {
 			char outgoing[MAX_DATA];
 			sprintf(outgoing, "%d:%d:%s:%s", NEW_SESS, sizeof(array[1]), cliid, array[1]);
 			free(array);
-
+			printf("%s\n", outgoing);
 			write(sockfd, outgoing, sizeof(outgoing));
 
 			while (1) {

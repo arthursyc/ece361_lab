@@ -30,6 +30,7 @@ void* handleMessages(void* connfdptr) {
 	int connfd = *((int*) connfdptr);
 	while (1) {
 		struct message incoming = getMessage(connfd, false);
+		printf("Received: %d:%d:%s:%s\n", incoming.type, incoming.size, incoming.source, incoming.data);
 
 		pthread_mutex_lock(&client_mtx);
 		client_node* cli_node = find_client(list, incoming.source);
@@ -73,6 +74,22 @@ void* handleMessages(void* connfdptr) {
 				if (cli_node != NULL && cli_node->client->online) {
 					cli_node->client->online = false;
 					cli_node->client->fd = -1;
+					pthread_mutex_lock(&sess_mtx);
+					sess = cli_node->client->sess;
+					if (sess != NULL && --sess->usercount == 0) {
+						if (sess_head->next == NULL) {
+							free(sess_head);
+							sess_head = NULL;
+						} else {
+							struct session* cur = sess_head;
+							for (; cur->next != sess; cur = cur->next);
+							cur->next = sess->next;
+							printf("%s closed\n", sess->id);
+							free(sess);
+						}
+					}
+					pthread_mutex_unlock(&sess_mtx);
+					cli_node->client->sess = NULL;
 					printf("%s logged out\n", cli_node->client->id);
 				}
 				pthread_mutex_unlock(&client_mtx);

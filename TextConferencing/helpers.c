@@ -46,9 +46,12 @@ struct message getMessage(int sockfd, bool timeout) {
 	char** array = parse(buffer, ":");
 	msg.type = atoi(array[0]);
 	msg.size = atoi(array[1]);
+	memset(msg.source, 0, sizeof(msg.source));
 	memcpy(msg.source, array[2], sizeof(array[2]));
+	msg.source[strcspn(msg.source, "\n")] = '\0';
+	memset(msg.data, 0, sizeof(msg.data));
 	memcpy(msg.data, array[3], msg.size);
-	msg.data[msg.size] = '\0';
+	msg.data[strcspn(msg.data, "\n")] = '\0';
 	free(array);
 	return msg;
 }
