@@ -110,7 +110,7 @@ void* handleMessages(void* connfdptr) {
 				sess = findSess(incoming.data, sess_head);
 				if (cli_node->client->sess != NULL) {
 
-					sprintf(outgoing, "%d`%d`%s`%s", NS_NAK, 18, "Server", "Already in session");
+					sprintf(outgoing, "%d`%d`%s`%s", JN_NAK, 18, "Server", "Already in session");
 
 				} else if (sess == NULL) {
 
